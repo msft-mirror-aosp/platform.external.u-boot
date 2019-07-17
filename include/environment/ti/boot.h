@@ -25,13 +25,13 @@
 
 #if defined(CONFIG_CMD_AB_SELECT)
 #define COMMON_PARTS \
-	"name=boot_a,size=10M,uuid=${uuid_gpt_boot_a};" \
-	"name=boot_b,size=10M,uuid=${uuid_gpt_boot_b};" \
+	"name=boot_a,size=20M,uuid=${uuid_gpt_boot_a};" \
+	"name=boot_b,size=20M,uuid=${uuid_gpt_boot_b};" \
 	"name=system_a,size=1024M,uuid=${uuid_gpt_system_a};" \
 	"name=system_b,size=1024M,uuid=${uuid_gpt_system_b};"
 #else
 #define COMMON_PARTS \
-	"name=boot,size=10M,uuid=${uuid_gpt_boot};" \
+	"name=boot,size=20M,uuid=${uuid_gpt_boot};" \
 	"name=system,size=1024M,uuid=${uuid_gpt_system};"
 #endif
 
@@ -86,9 +86,9 @@
 	"if part number mmc ${mmcdev} system${slot_suffix} " \
 	"system_part_number; then " \
 		"setenv bootargs_ab " \
-			"ro root=/dev/mmcblk${mmcdev}p${system_part_number} " \
-			"rootwait init=/init skip_initramfs " \
-			"androidboot.slot_suffix=${slot_suffix};" \
+		"ro root=/dev/mmcblk${mmcdev}p${system_part_number} " \
+		"rootwait init=/init skip_initramfs " \
+		"androidboot.slot_suffix=${slot_suffix};" \
 		"echo A/B cmdline addition: ${bootargs_ab};" \
 		"setenv bootargs ${bootargs} ${bootargs_ab};" \
 	"else " \
@@ -166,7 +166,7 @@
 		"if test $board_name = am57xx_evm; then " \
 			"setenv fdtfile am57xx-beagle-x15.dtb; fi;" \
 		"if test $board_name = am57xx_evm_reva3; then " \
-			"setenv fdtfile am57xx-evm-reva3.dtb; fi;" \
+			"setenv fdtfile am57xx-beagle-x15.dtb; fi;" \
 		"if test $board_name = am571x_idk; then " \
 			"setenv fdtfile am571x-idk.dtb; fi;" \
 		"if test $fdtfile = undefined; then " \

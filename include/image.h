@@ -68,7 +68,6 @@ struct fdt_region;
 #   define IMAGE_ENABLE_SHA1	1
 #  endif
 # else
-#  define CONFIG_CRC32		/* FIT images need CRC32 support */
 #  define IMAGE_ENABLE_CRC32	1
 #  define IMAGE_ENABLE_MD5	1
 #  define IMAGE_ENABLE_SHA1	1
@@ -306,6 +305,7 @@ enum {
 	IH_COMP_COUNT,
 };
 
+#define LZ4F_MAGIC	0x184D2204	/* LZ4 Magic Number		*/
 #define IH_MAGIC	0x27051956	/* Image Magic Number		*/
 #define IH_NMLEN		32	/* Image Name Length		*/
 
@@ -1046,6 +1046,10 @@ int fit_check_format(const void *fit);
 
 int fit_conf_find_compat(const void *fit, const void *fdt);
 int fit_conf_get_node(const void *fit, const char *conf_uname);
+int fit_conf_get_prop_node_count(const void *fit, int noffset,
+		const char *prop_name);
+int fit_conf_get_prop_node_index(const void *fit, int noffset,
+		const char *prop_name, int index);
 
 /**
  * fit_conf_get_prop_node() - Get node refered to by a configuration
@@ -1071,18 +1075,18 @@ int calculate_hash(const void *data, int data_len, const char *algo,
  * At present we only support signing on the host, and verification on the
  * device
  */
-#if defined(CONFIG_FIT_SIGNATURE)
-# ifdef USE_HOSTCC
+#if defined(USE_HOSTCC)
+# if defined(CONFIG_FIT_SIGNATURE)
 #  define IMAGE_ENABLE_SIGN	1
 #  define IMAGE_ENABLE_VERIFY	1
-# include  <openssl/evp.h>
-#else
+#  include <openssl/evp.h>
+# else
 #  define IMAGE_ENABLE_SIGN	0
-#  define IMAGE_ENABLE_VERIFY	1
+#  define IMAGE_ENABLE_VERIFY	0
 # endif
 #else
 # define IMAGE_ENABLE_SIGN	0
-# define IMAGE_ENABLE_VERIFY	0
+# define IMAGE_ENABLE_VERIFY	CONFIG_IS_ENABLED(FIT_SIGNATURE)
 #endif
 
 #ifdef USE_HOSTCC
@@ -1312,26 +1316,8 @@ int android_image_get_second(const struct andr_img_hdr *hdr,
 			      ulong *second_data, ulong *second_len);
 ulong android_image_get_end(const struct andr_img_hdr *hdr);
 ulong android_image_get_kload(const struct andr_img_hdr *hdr);
+ulong android_image_get_kcomp(const struct andr_img_hdr *hdr);
 void android_print_contents(const struct andr_img_hdr *hdr);
-
-/** android_image_load - Load an Android Image from storage.
- *
- * Load an Android Image based on the header size in the storage. Return the
- * number of bytes read from storage, which could be bigger than the actual
- * Android Image as described in the header size. In case of error reading the
- * image or if the image size needed to be read from disk is bigger than the
- * the passed |max_size| a negative number is returned.
- *
- * @dev_desc:		The device where to read the image from
- * @part_info:		The partition in |dev_desc| where to read the image from
- * @load_address:	The address where the image will be loaded
- * @max_size:		The maximum loaded size, in bytes
- * @return the number of bytes read or a negative number in case of error.
- */
-long android_image_load(struct blk_desc *dev_desc,
-			const disk_partition_t *part_info,
-			unsigned long load_address,
-			unsigned long max_size);
 
 #endif /* CONFIG_ANDROID_BOOT_IMAGE */
 
