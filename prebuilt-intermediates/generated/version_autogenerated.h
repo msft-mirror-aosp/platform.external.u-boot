@@ -1,1 +1,1 @@
-#define PLAIN_VERSION "2019.07"
+#define PLAIN_VERSION "2020.01"
