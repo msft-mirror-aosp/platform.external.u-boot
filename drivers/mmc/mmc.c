@@ -24,10 +24,6 @@
 #define DEFAULT_CMD6_TIMEOUT_MS  500
 
 static int mmc_set_signal_voltage(struct mmc *mmc, uint signal_voltage);
-static int mmc_power_cycle(struct mmc *mmc);
-#if !CONFIG_IS_ENABLED(MMC_TINY)
-static int mmc_select_mode_and_width(struct mmc *mmc, uint card_caps);
-#endif
 
 #if !CONFIG_IS_ENABLED(DM_MMC)
 
@@ -1126,9 +1122,11 @@ int mmc_hwpart_config(struct mmc *mmc,
 
 		ext_csd[EXT_CSD_ERASE_GROUP_DEF] = 1;
 
+#if CONFIG_IS_ENABLED(MMC_WRITE)
 		/* update erase group size to be high-capacity */
 		mmc->erase_grp_size =
 			ext_csd[EXT_CSD_HC_ERASE_GRP_SIZE] * 1024;
+#endif
 
 	}
 
@@ -1444,6 +1442,20 @@ static int sd_read_ssr(struct mmc *mmc)
 	cmd.cmdarg = mmc->rca << 16;
 
 	err = mmc_send_cmd(mmc, &cmd, NULL);
+#ifdef CONFIG_MMC_QUIRKS
+	if (err && (mmc->quirks & MMC_QUIRK_RETRY_APP_CMD)) {
+		int retries = 4;
+		/*
+		 * It has been seen that APP_CMD may fail on the first
+		 * attempt, let's try a few more times
+		 */
+		do {
+			err = mmc_send_cmd(mmc, &cmd, NULL);
+			if (!err)
+				break;
+		} while (retries--);
+	}
+#endif
 	if (err)
 		return err;
 
@@ -2561,7 +2573,7 @@ static int mmc_startup(struct mmc *mmc)
 		err = mmc_get_capabilities(mmc);
 		if (err)
 			return err;
-		mmc_select_mode_and_width(mmc, mmc->card_caps);
+		err = mmc_select_mode_and_width(mmc, mmc->card_caps);
 	}
 #endif
 	if (err)
@@ -2755,7 +2767,8 @@ int mmc_get_op_cond(struct mmc *mmc)
 
 #ifdef CONFIG_MMC_QUIRKS
 	mmc->quirks = MMC_QUIRK_RETRY_SET_BLOCKLEN |
-		      MMC_QUIRK_RETRY_SEND_CID;
+		      MMC_QUIRK_RETRY_SEND_CID |
+		      MMC_QUIRK_RETRY_APP_CMD;
 #endif
 
 	err = mmc_power_cycle(mmc);

@@ -25,6 +25,8 @@
 #include <asm/system.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
+#include <dm/device_compat.h>
+#include <linux/err.h>
 #include <linux/errno.h>
 
 /* Bit/mask specification */
@@ -173,6 +175,7 @@ struct emac_bd {
 #endif
 };
 
+/* Reduce amount of BUFs if you have limited amount of memory */
 #define RX_BUF 32
 /* Page table entries are set to 1MB, or multiples of 1MB
  * (not < 1MB). driver uses less bd's so use 1MB bdspace.

@@ -64,6 +64,9 @@
 	"partitions=" PARTS_DEFAULT \
 	ROCKCHIP_DEVICE_SETTINGS \
 	BOOTENV \
+	"altbootcmd=" \
+		"setenv boot_syslinux_conf extlinux/extlinux-rollback.conf;" \
+		"run distro_bootcmd\0" \
 	"importbootenv="                                         \
 		"if mmc dev 0 0; then if mmc dev 1 0; then; else"    \
 			"if mmc read ${kernel_addr_r} 0x1fc0 0x40; then" \
