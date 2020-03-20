@@ -8,6 +8,15 @@ config WATCHDOG
 	  this option if you want to service enabled watchdog by U-Boot. Disable
 	  this option if you want U-Boot to start watchdog but never service it.
 
+config WATCHDOG_TIMEOUT_MSECS
+	int "Watchdog timeout in msec"
+	default 128000 if ARCH_MX25 || ARCH_MX31 || ARCH_MX5 || ARCH_MX6
+	default 128000 if ARCH_MX7 || ARCH_VF610
+	default 30000 if ARCH_SOCFPGA
+	default 60000
+	help
+	  Watchdog timeout in msec
+
 config HW_WATCHDOG
 	bool
 
@@ -35,6 +44,13 @@ config ULP_WATCHDOG
 	bool "i.MX7ULP watchdog"
 	help
 	  Say Y here to enable i.MX7ULP watchdog driver.
+
+config DESIGNWARE_WATCHDOG
+	bool "Designware watchdog timer support"
+	select HW_WATCHDOG if !WDT
+	help
+	   Enable this to support Designware Watchdog Timer IP, present e.g.
+	   on Altera SoCFPGA SoCs.
 
 config WDT
 	bool "Enable driver model for watchdog timer drivers"
@@ -76,7 +92,8 @@ config WDT_AT91
 
 config WDT_BCM6345
 	bool "BCM6345 watchdog timer support"
-	depends on WDT && (ARCH_BMIPS || ARCH_BCM6858 || ARCH_BCM63158)
+	depends on WDT && (ARCH_BMIPS || ARCH_BCM68360 || \
+			   ARCH_BCM6858 || ARCH_BCM63158)
 	help
 	  Select this to enable watchdog timer for BCM6345 SoCs.
 	  The watchdog timer is stopped when initialized.
@@ -89,6 +106,14 @@ config WDT_CDNS
 	help
 	   Select this to enable Cadence watchdog timer, which can be found on some
 	   Xilinx Microzed Platform.
+
+config WDT_CORTINA
+	bool "Cortina Access CAxxxx watchdog timer support"
+	depends on WDT
+	help
+	  Cortina Access CAxxxx watchdog timer support.
+	  This driver support all CPU ISAs supported by Cortina
+          Access CAxxxx SoCs.
 
 config WDT_MPC8xx
 	bool "MPC8xx watchdog timer support"

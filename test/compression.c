@@ -7,6 +7,7 @@
 #include <bootm.h>
 #include <command.h>
 #include <gzip.h>
+#include <lz4.h>
 #include <malloc.h>
 #include <mapmem.h>
 #include <asm/io.h>
@@ -539,5 +540,6 @@ int do_ut_compression(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 						 compression_test);
 	const int n_ents = ll_entry_count(struct unit_test, compression_test);
 
-	return cmd_ut_category("compression", tests, n_ents, argc, argv);
+	return cmd_ut_category("compression", "compression_test_",
+			       tests, n_ents, argc, argv);
 }

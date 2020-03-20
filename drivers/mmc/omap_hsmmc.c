@@ -24,6 +24,7 @@
 
 #include <config.h>
 #include <common.h>
+#include <cpu_func.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <mmc.h>
@@ -46,6 +47,8 @@
 #include <asm/arch/mux.h>
 #endif
 #include <dm.h>
+#include <dm/devres.h>
+#include <linux/err.h>
 #include <power/regulator.h>
 #include <thermal.h>
 
@@ -183,7 +186,7 @@ static int omap_mmc_setup_gpio_in(int gpio, const char *label)
 {
 	int ret;
 
-#ifndef CONFIG_DM_GPIO
+#if !CONFIG_IS_ENABLED(DM_GPIO)
 	if (!gpio_is_valid(gpio))
 		return -1;
 #endif

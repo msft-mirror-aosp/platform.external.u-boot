@@ -20,6 +20,47 @@
 #include <dm/pinctrl.h>
 
 #ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_K3_LOAD_SYSFW
+#ifdef CONFIG_TI_SECURE_DEVICE
+struct fwl_data cbass_hc_cfg0_fwls[] = {
+	{ "PCIE0_CFG", 2560, 8 },
+	{ "PCIE1_CFG", 2561, 8 },
+	{ "USB3SS0_CORE", 2568, 4 },
+	{ "USB3SS1_CORE", 2570, 4 },
+	{ "EMMC8SS0_CFG", 2576, 4 },
+	{ "UFS_HCI0_CFG", 2580, 4 },
+	{ "SERDES0", 2584, 1 },
+	{ "SERDES1", 2585, 1 },
+}, cbass_hc0_fwls[] = {
+	{ "PCIE0_HP", 2528, 24 },
+	{ "PCIE0_LP", 2529, 24 },
+	{ "PCIE1_HP", 2530, 24 },
+	{ "PCIE1_LP", 2531, 24 },
+}, cbass_rc_cfg0_fwls[] = {
+	{ "EMMCSD4SS0_CFG", 2380, 4 },
+}, cbass_rc0_fwls[] = {
+	{ "GPMC0", 2310, 8 },
+}, infra_cbass0_fwls[] = {
+	{ "PLL_MMR0", 8, 26 },
+	{ "CTRL_MMR0", 9, 16 },
+}, mcu_cbass0_fwls[] = {
+	{ "MCU_R5FSS0_CORE0", 1024, 4 },
+	{ "MCU_R5FSS0_CORE0_CFG", 1025, 2 },
+	{ "MCU_R5FSS0_CORE1", 1028, 4 },
+	{ "MCU_FSS0_CFG", 1032, 12 },
+	{ "MCU_FSS0_S1", 1033, 8 },
+	{ "MCU_FSS0_S0", 1036, 8 },
+	{ "MCU_PSROM49152X32", 1048, 1 },
+	{ "MCU_MSRAM128KX64", 1050, 8 },
+	{ "MCU_CTRL_MMR0", 1200, 8 },
+	{ "MCU_PLL_MMR0", 1201, 3 },
+	{ "MCU_CPSW0", 1220, 2 },
+}, wkup_cbass0_fwls[] = {
+	{ "WKUP_CTRL_MMR0", 131, 16 },
+};
+#endif
+#endif
+
 static void mmr_unlock(u32 base, u32 partition)
 {
 	/* Translate the base address */
@@ -73,7 +114,7 @@ static void store_boot_index_from_rom(void)
 
 void board_init_f(ulong dummy)
 {
-#if defined(CONFIG_K3_LOAD_SYSFW)
+#if defined(CONFIG_K3_J721E_DDRSS) || defined(CONFIG_K3_LOAD_SYSFW)
 	struct udevice *dev;
 	int ret;
 #endif
@@ -87,6 +128,7 @@ void board_init_f(ulong dummy)
 	ctrl_mmr_unlock();
 
 #ifdef CONFIG_CPU_V7R
+	disable_linefill_optimization();
 	setup_k3_mpu_regions();
 #endif
 
@@ -113,9 +155,36 @@ void board_init_f(ulong dummy)
 	 * output.
 	 */
 	k3_sysfw_loader(preloader_console_init);
+
+	/* Disable ROM configured firewalls right after loading sysfw */
+#ifdef CONFIG_TI_SECURE_DEVICE
+	remove_fwl_configs(cbass_hc_cfg0_fwls, ARRAY_SIZE(cbass_hc_cfg0_fwls));
+	remove_fwl_configs(cbass_hc0_fwls, ARRAY_SIZE(cbass_hc0_fwls));
+	remove_fwl_configs(cbass_rc_cfg0_fwls, ARRAY_SIZE(cbass_rc_cfg0_fwls));
+	remove_fwl_configs(cbass_rc0_fwls, ARRAY_SIZE(cbass_rc0_fwls));
+	remove_fwl_configs(infra_cbass0_fwls, ARRAY_SIZE(infra_cbass0_fwls));
+	remove_fwl_configs(mcu_cbass0_fwls, ARRAY_SIZE(mcu_cbass0_fwls));
+	remove_fwl_configs(wkup_cbass0_fwls, ARRAY_SIZE(wkup_cbass0_fwls));
+#endif
 #else
 	/* Prepare console output */
 	preloader_console_init();
+#endif
+
+	/* Perform EEPROM-based board detection */
+	do_board_detect();
+
+#if defined(CONFIG_CPU_V7R) && defined(CONFIG_K3_AVS0)
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(k3_avs),
+					  &dev);
+	if (ret)
+		printf("AVS init failed: %d\n", ret);
+#endif
+
+#if defined(CONFIG_K3_J721E_DDRSS)
+	ret = uclass_get_device(UCLASS_RAM, 0, &dev);
+	if (ret)
+		panic("DRAM init failed: %d\n", ret);
 #endif
 }
 

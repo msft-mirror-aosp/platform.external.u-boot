@@ -5,6 +5,7 @@
  * Author: Fabio Estevam <fabio.estevam@freescale.com>
  */
 
+#include <init.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
@@ -228,16 +229,6 @@ static struct i2c_pads_info mx6dl_i2c_pad_info1 = {
 static void setup_spi(void)
 {
 	SETUP_IOMUX_PADS(ecspi1_pads);
-}
-
-iomux_v3_cfg_t const pcie_pads[] = {
-	IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL)),	/* POWER */
-	IOMUX_PADS(PAD_GPIO_17__GPIO7_IO12 | MUX_PAD_CTRL(NO_PAD_CTRL)),	/* RESET */
-};
-
-static void setup_pcie(void)
-{
-	SETUP_IOMUX_PADS(pcie_pads);
 }
 
 iomux_v3_cfg_t const di0_pads[] = {
@@ -507,7 +498,6 @@ int overwrite_console(void)
 int board_eth_init(bd_t *bis)
 {
 	setup_iomux_enet();
-	setup_pcie();
 
 	return cpu_eth_init(bis);
 }

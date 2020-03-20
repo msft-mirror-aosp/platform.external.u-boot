@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2017, 2019 NXP
+ * Copyright 2017, 2019-2020 NXP
  * Copyright 2015 Freescale Semiconductor
  */
 
@@ -58,11 +58,6 @@ unsigned long get_board_ddr_clk(void);
 
 #ifdef CONFIG_TFABOOT
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_ENV_SIZE			0x20000
-#define CONFIG_ENV_OFFSET		0x500000
-#define CONFIG_ENV_ADDR			(CONFIG_SYS_FLASH_BASE + \
-					 CONFIG_ENV_OFFSET)
-#define CONFIG_ENV_SECT_SIZE		0x20000
 #endif
 
 #define CONFIG_SYS_NOR0_CSPR_EXT	(0x0)
@@ -229,16 +224,11 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_CS0_FTIM2		CONFIG_SYS_NAND_FTIM2
 #define CONFIG_SYS_CS0_FTIM3		CONFIG_SYS_NAND_FTIM3
 
-#define CONFIG_ENV_OFFSET		(896 * 1024)
-#define CONFIG_ENV_SECT_SIZE		0x20000
-#define CONFIG_ENV_SIZE			0x2000
 #define CONFIG_SPL_PAD_TO		0x20000
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	(256 * 1024)
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	(640 * 1024)
 #elif defined(CONFIG_SD_BOOT)
-#define CONFIG_ENV_OFFSET		0x300000
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_ENV_SIZE			0x20000
 #endif
 #else
 #define CONFIG_SYS_CSPR0_EXT		CONFIG_SYS_NOR0_CSPR_EXT
@@ -268,12 +258,6 @@ unsigned long get_board_ddr_clk(void);
 #define CONFIG_SYS_CS2_FTIM1		CONFIG_SYS_NAND_FTIM1
 #define CONFIG_SYS_CS2_FTIM2		CONFIG_SYS_NAND_FTIM2
 #define CONFIG_SYS_CS2_FTIM3		CONFIG_SYS_NAND_FTIM3
-
-#if !defined(CONFIG_QSPI_BOOT) && !defined(CONFIG_TFABOOT)
-#define CONFIG_ENV_ADDR			(CONFIG_SYS_FLASH_BASE + 0x300000)
-#define CONFIG_ENV_SECT_SIZE		0x20000
-#define CONFIG_ENV_SIZE			0x2000
-#endif
 #endif
 
 /* Debug Server firmware */
@@ -352,7 +336,7 @@ unsigned long get_board_ddr_clk(void);
 
 /* Initial environment variables */
 #undef CONFIG_EXTRA_ENV_SETTINGS
-#ifdef CONFIG_SECURE_BOOT
+#ifdef CONFIG_NXP_ESBC
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	"hwconfig=fsl_ddr:bank_intlv=auto\0"	\
 	"loadaddr=0x80100000\0"			\
@@ -365,8 +349,8 @@ unsigned long get_board_ddr_clk(void);
 	"kernel_load=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
 	"mcmemsize=0x40000000\0"		\
-	"mcinitcmd=esbc_validate 0x580700000;"  \
-	"esbc_validate 0x580740000;"            \
+	"mcinitcmd=esbc_validate 0x580640000;"  \
+	"esbc_validate 0x580680000;"            \
 	"fsl_mc start mc 0x580a00000"           \
 	" 0x580e00000 \0"
 #else
@@ -394,7 +378,7 @@ unsigned long get_board_ddr_clk(void);
 	"kernel_size=0x2800000\0"               \
 	"kernel_size_sd=0x14000\0"               \
 	"load_addr=0xa0000000\0"		            \
-	"kernelheader_addr=0x580800000\0"	\
+	"kernelheader_addr=0x580600000\0"	\
 	"kernelheader_addr_r=0x80200000\0"	\
 	"kernelheader_size=0x40000\0"		\
 	"BOARD=ls2088aqds\0" \
@@ -442,12 +426,12 @@ unsigned long get_board_ddr_clk(void);
 	"mcinitcmd=fsl_mc start mc 0x580a00000" \
 	" 0x580e00000 \0"
 #endif /* CONFIG_TFABOOT */
-#endif /* CONFIG_SECURE_BOOT */
+#endif /* CONFIG_NXP_ESBC */
 
 #ifdef CONFIG_TFABOOT
 #define SD_BOOTCOMMAND						\
 			"env exists mcinitcmd && env exists secureboot "\
-			"&& mmcinfo && mmc read $load_addr 0x3c00 0x800 " \
+			"&& mmcinfo && mmc read $load_addr 0x3600 0x800 " \
 			"&& esbc_validate $load_addr; "			\
 			"env exists mcinitcmd && run mcinitcmd "	\
 			"&& mmc read 0x80d00000 0x6800 0x800 "		\
@@ -457,7 +441,7 @@ unsigned long get_board_ddr_clk(void);
 
 #define IFC_NOR_BOOTCOMMAND						\
 			"env exists mcinitcmd && env exists secureboot "\
-			"&& esbc_validate 0x580780000; env exists mcinitcmd "\
+			"&& esbc_validate 0x5806C0000; env exists mcinitcmd "\
 			"&& fsl_mc lazyapply dpl 0x580d00000;"		\
 			"run nor_bootcmd; "		\
 			"env exists secureboot && esbc_halt;"

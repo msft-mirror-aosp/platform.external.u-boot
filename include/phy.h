@@ -10,6 +10,7 @@
 #define _PHY_H
 
 #include <dm.h>
+#include <linux/errno.h>
 #include <linux/list.h>
 #include <linux/mii.h>
 #include <linux/ethtool.h>
@@ -17,6 +18,11 @@
 #include <phy_interface.h>
 
 #define PHY_FIXED_ID		0xa5a55a5a
+/*
+ * There is no actual id for this.
+ * This is just a dummy id for gmii2rgmmi converter.
+ */
+#define PHY_GMII2RGMII_ID	0x5a5a5a5a
 
 #define PHY_MAX_ADDR 32
 
@@ -110,6 +116,9 @@ struct phy_driver {
 			 u16 val);
 
 	struct list_head list;
+
+	/* driver private data */
+	ulong data;
 };
 
 struct phy_device {
@@ -391,6 +400,7 @@ int phy_vitesse_init(void);
 int phy_xilinx_init(void);
 int phy_mscc_init(void);
 int phy_fixed_init(void);
+int phy_xilinx_gmii2rgmii_init(void);
 
 int board_phy_config(struct phy_device *phydev);
 int get_phy_id(struct mii_dev *bus, int addr, int devad, u32 *phy_id);
