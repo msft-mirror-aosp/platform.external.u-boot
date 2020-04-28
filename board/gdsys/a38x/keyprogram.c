@@ -5,7 +5,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <tpm-v1.h>
 #include <malloc.h>
 #include <linux/ctype.h>
@@ -13,7 +12,7 @@
 
 #include "hre.h"
 
-int flush_keys(struct udevice *tpm)
+int flush_keys(void)
 {
 	u16 key_count;
 	u8 buf[288];
@@ -22,15 +21,13 @@ int flush_keys(struct udevice *tpm)
 	uint i;
 
 	/* fetch list of already loaded keys in the TPM */
-	err = tpm_get_capability(tpm, TPM_CAP_HANDLE, TPM_RT_KEY, buf,
-				 sizeof(buf));
+	err = tpm_get_capability(TPM_CAP_HANDLE, TPM_RT_KEY, buf, sizeof(buf));
 	if (err)
 		return -1;
 	key_count = get_unaligned_be16(buf);
 	ptr = buf + 2;
 	for (i = 0; i < key_count; ++i, ptr += 4) {
-		err = tpm_flush_specific(tpm, get_unaligned_be32(ptr),
-					 TPM_RT_KEY);
+		err = tpm_flush_specific(get_unaligned_be32(ptr), TPM_RT_KEY);
 		if (err && err != TPM_KEY_OWNER_CONTROL)
 			return err;
 	}
@@ -124,7 +121,7 @@ struct key_program *parse_and_check_keyprog(u8 *progdata)
 	return result;
 }
 
-int load_and_run_keyprog(struct udevice *tpm)
+int load_and_run_keyprog(void)
 {
 	char *cmd = NULL;
 	u8 *binprog = NULL;
@@ -147,7 +144,7 @@ int load_and_run_keyprog(struct udevice *tpm)
 	if (!prog)
 		return 1;
 
-	if (hre_run_program(tpm, prog->code, prog->code_size)) {
+	if (hre_run_program(prog->code, prog->code_size)) {
 		free(prog);
 		return 1;
 	}

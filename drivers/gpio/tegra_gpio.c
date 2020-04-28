@@ -378,4 +378,5 @@ U_BOOT_DRIVER(gpio_tegra) = {
 	.probe = gpio_tegra_probe,
 	.priv_auto_alloc_size = sizeof(struct tegra_port_info),
 	.ops	= &gpio_tegra_ops,
+	.flags	= DM_FLAG_PRE_RELOC,
 };

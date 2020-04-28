@@ -10,14 +10,10 @@ Running tests
 
 To run most tests on sandbox, type this:
 
-    make check
+    test/run
 
 in the U-Boot directory. Note that only the pytest suite is run using this
 command.
-
-Some tests take ages to run. To run just the quick ones, type this:
-
-    make qcheck
 
 
 Sandbox

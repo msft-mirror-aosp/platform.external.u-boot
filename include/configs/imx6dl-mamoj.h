@@ -51,9 +51,11 @@
 
 /* MMC */
 #define CONFIG_SYS_MMC_ENV_DEV		2
+#define CONFIG_SUPPORT_EMMC_BOOT
 
 /* Ethernet */
 #define CONFIG_FEC_MXC_PHYADDR		1
+#define CONFIG_MII
 
 /* USB */
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
@@ -81,6 +83,7 @@
 #define CONFIG_SYS_HZ			1000
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM

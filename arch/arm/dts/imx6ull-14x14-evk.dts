@@ -455,7 +455,7 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		/* compatible = "micron,n25q256a"; */
-		compatible = "jedec,spi-nor";
+		compatible = "spi-flash";
 		spi-max-frequency = <29000000>;
 		spi-nor,ddr-quad-read-dummy = <6>;
 		reg = <0>;

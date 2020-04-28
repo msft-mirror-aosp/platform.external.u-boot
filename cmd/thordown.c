@@ -30,18 +30,14 @@ int do_thor_down(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		goto done;
 
 	int controller_index = simple_strtoul(usb_controller, NULL, 0);
-	ret = usb_gadget_initialize(controller_index);
+	ret = board_usb_init(controller_index, USB_INIT_DEVICE);
 	if (ret) {
 		pr_err("USB init failed: %d\n", ret);
 		ret = CMD_RET_FAILURE;
 		goto exit;
 	}
 
-	ret = g_dnl_register("usb_dnl_thor");
-	if (ret) {
-		pr_err("g_dnl_register failed %d\n", ret);
-		return ret;
-	}
+	g_dnl_register("usb_dnl_thor");
 
 	ret = thor_init();
 	if (ret) {
@@ -59,7 +55,7 @@ int do_thor_down(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 exit:
 	g_dnl_unregister();
-	usb_gadget_release(controller_index);
+	board_usb_cleanup(controller_index, USB_INIT_DEVICE);
 done:
 	dfu_free_entities();
 
@@ -69,7 +65,7 @@ done:
 U_BOOT_CMD(thordown, CONFIG_SYS_MAXARGS, 1, do_thor_down,
 	   "TIZEN \"THOR\" downloader",
 	   "<USB_controller> <interface> <dev>\n"
-	   "  - device software upgrade via LTHOR TIZEN download\n"
+	   "  - device software upgrade via LTHOR TIZEN dowload\n"
 	   "    program via <USB_controller> on device <dev>,\n"
 	   "	attached to interface <interface>\n"
 );

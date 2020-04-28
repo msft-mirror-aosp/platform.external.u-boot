@@ -14,7 +14,10 @@
 #define CONFIG_EXYNOS4210		1	/* which is a EXYNOS4210 SoC */
 #define CONFIG_ORIGEN			1	/* working with ORIGEN*/
 
+#define CONFIG_SYS_DCACHE_OFF		1
+
 /* ORIGEN has 4 bank of DRAM */
+#define CONFIG_NR_DRAM_BANKS		4
 #define CONFIG_SYS_SDRAM_BASE		0x40000000
 #define PHYS_SDRAM_1			CONFIG_SYS_SDRAM_BASE
 #define SDRAM_BANK_SIZE			(256 << 20)	/* 256 MB */
@@ -27,6 +30,7 @@
 #define CONFIG_MACH_TYPE		MACH_TYPE_ORIGEN
 
 /* select serial console configuration */
+#define CONFIG_SERIAL2
 
 /* Console configuration */
 #define CONFIG_DEFAULT_CONSOLE		"console=ttySAC1,115200n8\0"
@@ -42,6 +46,7 @@
 
 /* MMC SPL */
 #define COPY_BL2_FNPTR_ADDR	0x02020030
+#define CONFIG_SPL_TEXT_BASE	0x02021410
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"loadaddr=0x40007000\0" \

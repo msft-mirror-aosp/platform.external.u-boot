@@ -46,7 +46,7 @@ int imagetool_verify_print_header(
 
 			if (retval == 0) {
 				/*
-				 * Print the image information if verify is
+				 * Print the image information  if verify is
 				 * successful
 				 */
 				if ((*curr)->print_header) {
@@ -60,38 +60,6 @@ int imagetool_verify_print_header(
 				break;
 			}
 		}
-	}
-
-	return retval;
-}
-
-int imagetool_verify_print_header_by_type(
-	void *ptr,
-	struct stat *sbuf,
-	struct image_type_params *tparams,
-	struct image_tool_params *params)
-{
-	int retval;
-
-	retval = tparams->verify_header((unsigned char *)ptr, sbuf->st_size,
-			params);
-
-	if (retval == 0) {
-		/*
-		 * Print the image information if verify is successful
-		 */
-		if (tparams->print_header) {
-			if (!params->quiet)
-				tparams->print_header(ptr);
-		} else {
-			fprintf(stderr,
-				"%s: print_header undefined for %s\n",
-				params->cmdname, tparams->name);
-		}
-	} else {
-		fprintf(stderr,
-			"%s: verify_header failed for %s with exit code %d\n",
-			params->cmdname, tparams->name, retval);
 	}
 
 	return retval;
@@ -148,7 +116,7 @@ int imagetool_get_filesize(struct image_tool_params *params, const char *fname)
 }
 
 time_t imagetool_get_source_date(
-	 const char *cmdname,
+	 struct image_tool_params *params,
 	 time_t fallback)
 {
 	char *source_date_epoch = getenv("SOURCE_DATE_EPOCH");
@@ -160,7 +128,7 @@ time_t imagetool_get_source_date(
 
 	if (gmtime(&time) == NULL) {
 		fprintf(stderr, "%s: SOURCE_DATE_EPOCH is not valid\n",
-			cmdname);
+			params->cmdname);
 		time = 0;
 	}
 

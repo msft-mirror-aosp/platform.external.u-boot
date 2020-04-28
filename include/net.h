@@ -14,8 +14,6 @@
 
 #include <asm/cache.h>
 #include <asm/byteorder.h>	/* for nton* / ntoh* stuff */
-#include <env.h>
-#include <linux/if_ether.h>
 
 #define DEBUG_LL_STATE 0	/* Link local state machine changes */
 #define DEBUG_DEV_PKT 0		/* Packets or info directed to the device */
@@ -93,14 +91,12 @@ enum eth_state_t {
  * @enetaddr: The Ethernet MAC address that is loaded from EEPROM or env
  * @phy_interface: PHY interface to use - see PHY_INTERFACE_MODE_...
  * @max_speed: Maximum speed of Ethernet connection supported by MAC
- * @priv_pdata: device specific platdata
  */
 struct eth_pdata {
 	phys_addr_t iobase;
 	unsigned char enetaddr[ARP_HLEN];
 	int phy_interface;
 	int max_speed;
-	void *priv_pdata;
 };
 
 enum eth_recv_flags {
@@ -143,7 +139,9 @@ struct eth_ops {
 	int (*recv)(struct udevice *dev, int flags, uchar **packetp);
 	int (*free_pkt)(struct udevice *dev, uchar *packet, int length);
 	void (*stop)(struct udevice *dev);
+#ifdef CONFIG_MCAST_TFTP
 	int (*mcast)(struct udevice *dev, const u8 *enetaddr, int join);
+#endif
 	int (*write_hwaddr)(struct udevice *dev);
 	int (*read_rom_hwaddr)(struct udevice *dev);
 };
@@ -166,7 +164,7 @@ void eth_halt_state_only(void); /* Set passive state */
 
 #ifndef CONFIG_DM_ETH
 struct eth_device {
-#define ETH_NAME_LEN 20
+#define ETH_NAME_LEN 16
 	char name[ETH_NAME_LEN];
 	unsigned char enetaddr[ARP_HLEN];
 	phys_addr_t iobase;
@@ -176,7 +174,9 @@ struct eth_device {
 	int (*send)(struct eth_device *, void *packet, int length);
 	int (*recv)(struct eth_device *);
 	void (*halt)(struct eth_device *);
-	int (*mcast)(struct eth_device *, const u8 *enetaddr, int join);
+#ifdef CONFIG_MCAST_TFTP
+	int (*mcast)(struct eth_device *, const u8 *enetaddr, u8 set);
+#endif
 	int (*write_hwaddr)(struct eth_device *);
 	struct eth_device *next;
 	int index;
@@ -285,7 +285,12 @@ extern void (*push_packet)(void *packet, int length);
 int eth_rx(void);			/* Check for received packets */
 void eth_halt(void);			/* stop SCC */
 const char *eth_get_name(void);		/* get name of current device */
+
+#ifdef CONFIG_MCAST_TFTP
 int eth_mcast_join(struct in_addr mcast_addr, int join);
+u32 ether_crc(size_t len, unsigned char const *p);
+#endif
+
 
 /**********************************************************************/
 /*
@@ -572,6 +577,10 @@ extern struct in_addr	net_ntp_server;		/* the ip address to NTP */
 extern int net_ntp_time_offset;			/* offset time from UTC */
 #endif
 
+#if defined(CONFIG_MCAST_TFTP)
+extern struct in_addr net_mcast_addr;
+#endif
+
 /* Initialize the network adapter */
 void net_init(void);
 int net_loop(enum proto_t);
@@ -587,8 +596,7 @@ int net_set_ether(uchar *xet, const uchar *dest_ethaddr, uint prot);
 int net_update_ether(struct ethernet_hdr *et, uchar *addr, uint prot);
 
 /* Set IP header */
-void net_set_ip_header(uchar *pkt, struct in_addr dest, struct in_addr source,
-		       u16 pkt_len, u8 proto);
+void net_set_ip_header(uchar *pkt, struct in_addr dest, struct in_addr source);
 void net_set_udp_header(uchar *pkt, struct in_addr dest, int dport,
 				int sport, int len);
 
@@ -627,7 +635,6 @@ rxhand_f *net_get_udp_handler(void);	/* Get UDP RX packet handler */
 void net_set_udp_handler(rxhand_f *);	/* Set UDP RX packet handler */
 rxhand_f *net_get_arp_handler(void);	/* Get ARP RX packet handler */
 void net_set_arp_handler(rxhand_f *);	/* Set ARP RX packet handler */
-bool arp_is_waiting(void);		/* Waiting for ARP reply? */
 void net_set_icmp_handler(rxhand_icmp_f *f); /* Set ICMP RX handler */
 void net_set_timeout_handler(ulong, thand_f *);/* Set timeout handler */
 
@@ -646,14 +653,6 @@ static inline void net_set_state(enum net_loop_state state)
 	net_state = state;
 }
 
-/*
- * net_get_async_tx_pkt_buf - Get a packet buffer that is not in use for
- *			      sending an asynchronous reply
- *
- * returns - ptr to packet buffer
- */
-uchar * net_get_async_tx_pkt_buf(void);
-
 /* Transmit a packet */
 static inline void net_send_packet(uchar *pkt, int len)
 {
@@ -671,9 +670,6 @@ static inline void net_send_packet(uchar *pkt, int len)
  * @param sport Source UDP port
  * @param payload_len Length of data after the UDP header
  */
-int net_send_ip_packet(uchar *ether, struct in_addr dest, int dport, int sport,
-		       int payload_len, int proto, u8 action, u32 tcp_seq_num,
-		       u32 tcp_ack_num);
 int net_send_udp_packet(uchar *ether, struct in_addr dest, int dport,
 			int sport, int payload_len);
 
@@ -729,7 +725,7 @@ static inline struct in_addr net_read_ip(void *from)
 }
 
 /* return ulong *in network byteorder* */
-static inline u32 net_read_u32(void *from)
+static inline u32 net_read_u32(u32 *from)
 {
 	u32 l;
 
@@ -750,7 +746,7 @@ static inline void net_copy_ip(void *to, void *from)
 }
 
 /* copy ulong */
-static inline void net_copy_u32(void *to, void *from)
+static inline void net_copy_u32(u32 *to, u32 *from)
 {
 	memcpy((void *)to, (void *)from, sizeof(u32));
 }
@@ -816,7 +812,7 @@ static inline int is_valid_ethaddr(const u8 *addr)
 static inline void net_random_ethaddr(uchar *addr)
 {
 	int i;
-	unsigned int seed = get_ticks();
+	unsigned int seed = get_timer(0);
 
 	for (i = 0; i < 6; i++)
 		addr[i] = rand_r(&seed);
@@ -843,20 +839,6 @@ ushort env_get_vlan(char *);
 /* copy a filename (allow for "..." notation, limit length) */
 void copy_filename(char *dst, const char *src, int size);
 
-/* check if serverip is specified in filename from the command line */
-int is_serverip_in_cmd(void);
-
-/**
- * net_parse_bootfile - Parse the bootfile env var / cmd line param
- *
- * @param ipaddr - a pointer to the ipaddr to populate if included in bootfile
- * @param filename - a pointer to the string to save the filename part
- * @param max_len - The longest - 1 that the filename part can be
- *
- * return 1 if parsed, 0 if bootfile is empty
- */
-int net_parse_bootfile(struct in_addr *ipaddr, char *filename, int max_len);
-
 /* get a random source port */
 unsigned int random_port(void);
 
@@ -874,16 +856,5 @@ unsigned int random_port(void);
 int update_tftp(ulong addr, char *interface, char *devstring);
 
 /**********************************************************************/
-
-/**
- * eth_parse_enetaddr() - Parse a MAC address
- *
- * Convert a string MAC address
- *
- * @addr: MAC address in aa:bb:cc:dd:ee:ff format, where each part is a 2-digit
- *	hex value
- * @enetaddr: Place to put MAC address (6 bytes)
- */
-void eth_parse_enetaddr(const char *addr, uint8_t *enetaddr);
 
 #endif /* __NET_H__ */

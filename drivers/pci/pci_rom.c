@@ -247,7 +247,7 @@ int dm_pci_run_vga_bios(struct udevice *dev, int (*int15_handler)(void),
 	}
 
 	if (!board_should_load_oprom(dev))
-		return log_msg_ret("Should not load OPROM", -ENXIO);
+		return -ENXIO;
 
 	ret = pci_rom_probe(dev, &rom);
 	if (ret)
@@ -306,7 +306,7 @@ int dm_pci_run_vga_bios(struct udevice *dev, int (*int15_handler)(void),
 			goto err;
 #endif
 	} else {
-#if defined(CONFIG_X86) && (CONFIG_IS_ENABLED(X86_32BIT_INIT) || CONFIG_TPL)
+#if defined(CONFIG_X86) && CONFIG_IS_ENABLED(X86_32BIT_INIT)
 		bios_set_interrupt_handler(0x15, int15_handler);
 
 		bios_run_on_x86(dev, (unsigned long)ram, vesa_mode,
@@ -328,10 +328,9 @@ int vbe_setup_video_priv(struct vesa_mode_info *vesa,
 			 struct video_uc_platdata *plat)
 {
 	if (!vesa->x_resolution)
-		return log_msg_ret("No x resolution", -ENXIO);
+		return -ENXIO;
 	uc_priv->xsize = vesa->x_resolution;
 	uc_priv->ysize = vesa->y_resolution;
-	uc_priv->line_length = vesa->bytes_per_scanline;
 	switch (vesa->bits_per_pixel) {
 	case 32:
 	case 24:

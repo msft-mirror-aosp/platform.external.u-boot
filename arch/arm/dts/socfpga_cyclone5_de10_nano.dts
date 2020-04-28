@@ -6,7 +6,6 @@
  */
 
 #include "socfpga_cyclone5.dtsi"
-#include "socfpga-common-u-boot.dtsi"
 
 / {
 	model = "Terasic DE10-Nano";
@@ -14,7 +13,6 @@
 
 	chosen {
 		bootargs = "console=ttyS0,115200";
-		stdout-path = "serial0:115200n8";
 	};
 
 	aliases {
@@ -26,6 +24,10 @@
 		name = "memory";
 		device_type = "memory";
 		reg = <0x0 0x40000000>; /* 1GB */
+	};
+
+	soc {
+		u-boot,dm-pre-reloc;
 	};
 };
 
@@ -55,18 +57,6 @@
 	status = "okay";
 };
 
-&porta {
-	bank-name = "porta";
-};
-
-&portb {
-	bank-name = "portb";
-};
-
-&portc {
-	bank-name = "portc";
-};
-
 &mmc0 {
 	status = "okay";
 	u-boot,dm-pre-reloc;
@@ -74,13 +64,4 @@
 
 &usb1 {
 	status = "okay";
-};
-
-&uart0 {
-	clock-frequency = <100000000>;
-	u-boot,dm-pre-reloc;
-};
-
-&watchdog0 {
-	status = "disabled";
 };

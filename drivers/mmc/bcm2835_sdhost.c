@@ -234,7 +234,7 @@ static void bcm2835_reset_internal(struct bcm2835_host *host)
 
 static int bcm2835_wait_transfer_complete(struct bcm2835_host *host)
 {
-	ulong tstart_ms = get_timer(0);
+	int timediff = 0;
 
 	while (1) {
 		u32 edm, fsm;
@@ -254,13 +254,11 @@ static int bcm2835_wait_transfer_complete(struct bcm2835_host *host)
 			break;
 		}
 
-		/* Error out after ~1s */
-		ulong tlapse_ms = get_timer(tstart_ms);
-		if ( tlapse_ms > 1000 /* ms */ ) {
-
+		/* Error out after 100000 register reads (~1s) */
+		if (timediff++ == 100000) {
 			dev_err(host->dev,
-				"wait_transfer_complete - still waiting after %lu ms\n",
-				tlapse_ms);
+				"wait_transfer_complete - still waiting after %d retries\n",
+				timediff);
 			bcm2835_dumpregs(host);
 			return -ETIMEDOUT;
 		}

@@ -159,19 +159,23 @@
 
 &pio {
 	usb0_id_pin_chip_pro: usb0-id-pin@0 {
-		pins = "PG2";
-		function = "gpio_in";
+		allwinner,pins = "PG2";
+		allwinner,function = "gpio_in";
+		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
 	};
 
 	wifi_reg_on_pin_chip_pro: wifi-reg-on-pin@0 {
-		pins = "PB10";
-		function = "gpio_out";
+		allwinner,pins = "PB10";
+		allwinner,function = "gpio_out";
+		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
+		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
 	};
 };
 
 &pwm {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pwm0_pins>, <&pwm1_pins>;
+	pinctrl-0 = <&pwm0_pins_a>, <&pwm1_pins>;
 	status = "disabled";
 };
 
@@ -220,7 +224,7 @@
 
 &uart1 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart1_pins_b>, <&uart1_cts_rts_pins_a>;
+	pinctrl-0 = <&uart1_pins_a>, <&uart1_cts_rts_pins_a>;
 	status = "okay";
 };
 

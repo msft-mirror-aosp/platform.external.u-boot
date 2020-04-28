@@ -204,7 +204,7 @@ static int fpgamgr_program_poll_usermode(void)
  */
 int socfpga_load(Altera_desc *desc, const void *rbf_data, size_t rbf_size)
 {
-	int status;
+	unsigned long status;
 
 	if ((uint32_t)rbf_data & 0x3) {
 		puts("FPGA: Unaligned data, realign to 32bit boundary.\n");

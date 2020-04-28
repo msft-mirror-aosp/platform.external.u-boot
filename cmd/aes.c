@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <environment.h>
 #include <uboot_aes.h>
 #include <malloc.h>
 #include <asm/byteorder.h>

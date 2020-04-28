@@ -211,16 +211,10 @@ void lcdc_tcon1_mode_set(struct sunxi_lcdc_reg * const lcdc,
 void lcdc_pll_set(struct sunxi_ccm_reg *ccm, int tcon, int dotclock,
 		  int *clk_div, int *clk_double, bool is_composite)
 {
-	int value, n, m, min_m, max_m, diff, step;
+	int value, n, m, min_m, max_m, diff;
 	int best_n = 0, best_m = 0, best_diff = 0x0FFFFFFF;
 	int best_double = 0;
 	bool use_mipi_pll = false;
-
-#ifdef CONFIG_SUNXI_DE2
-	step = 6000;
-#else
-	step = 3000;
-#endif
 
 	if (tcon == 0) {
 #if defined(CONFIG_VIDEO_LCD_IF_PARALLEL) || defined(CONFIG_SUNXI_DE2)
@@ -243,10 +237,10 @@ void lcdc_pll_set(struct sunxi_ccm_reg *ccm, int tcon, int dotclock,
 	 */
 	for (m = min_m; m <= max_m; m++) {
 #ifndef CONFIG_SUNXI_DE2
-		n = (m * dotclock) / step;
+		n = (m * dotclock) / 3000;
 
 		if ((n >= 9) && (n <= 127)) {
-			value = (step * n) / m;
+			value = (3000 * n) / m;
 			diff = dotclock - value;
 			if (diff < best_diff) {
 				best_diff = diff;
@@ -262,9 +256,9 @@ void lcdc_pll_set(struct sunxi_ccm_reg *ccm, int tcon, int dotclock,
 #endif
 
 		/* No double clock on DE2 */
-		n = (m * dotclock) / (step * 2);
+		n = (m * dotclock) / 6000;
 		if ((n >= 9) && (n <= 127)) {
-			value = (step * 2 * n) / m;
+			value = (6000 * n) / m;
 			diff = dotclock - value;
 			if (diff < best_diff) {
 				best_diff = diff;
@@ -293,11 +287,11 @@ void lcdc_pll_set(struct sunxi_ccm_reg *ccm, int tcon, int dotclock,
 	} else
 #endif
 	{
-		clock_set_pll3(best_n * step * 1000);
-		debug("dotclock: %dkHz = %dkHz: (%d * %dkHz * %d) / %d\n",
+		clock_set_pll3(best_n * 3000000);
+		debug("dotclock: %dkHz = %dkHz: (%d * 3MHz * %d) / %d\n",
 		      dotclock,
 		      (best_double + 1) * clock_get_pll3() / best_m / 1000,
-		      best_double + 1, step, best_n, best_m);
+		      best_double + 1, best_n, best_m);
 	}
 
 	if (tcon == 0) {

@@ -26,6 +26,8 @@
  * Board
  */
 
+#define CONFIG_MISC_INIT_R
+
 /*
  * Clocks
  */
@@ -36,6 +38,8 @@
 /*
  * DRAM
  */
+
+#define CONFIG_NR_DRAM_BANKS	1
 
 /*
  * Memory
@@ -70,6 +74,7 @@
  * SPL
  */
 
+#define CONFIG_SPL_TEXT_BASE		0x40300000
 #define CONFIG_SPL_MAX_SIZE		(SRAM_SCRATCH_SPACE_ADDR - \
 					 CONFIG_SPL_TEXT_BASE)
 #define CONFIG_SPL_BSS_START_ADDR	0x80000000
@@ -102,6 +107,8 @@
 /*
  * Environment
  */
+
+#define CONFIG_ENV_SIZE		(128 * 1024)
 
 #define CONFIG_ENV_OVERWRITE
 

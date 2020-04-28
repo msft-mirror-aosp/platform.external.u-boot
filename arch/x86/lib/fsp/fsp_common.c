@@ -132,13 +132,13 @@ int arch_fsp_init(void)
 				chipset_clear_sleep_state();
 				/* Reboot */
 				debug("Rebooting..\n");
-				outb(SYS_RST | RST_CPU, IO_PORT_RESET);
+				reset_cpu(0);
 				/* Should not reach here.. */
 				panic("Reboot System");
 			}
 
 			/*
-			 * DM is not available yet at this point, hence call
+			 * DM is not avaiable yet at this point, hence call
 			 * CMOS access library which does not depend on DM.
 			 */
 			stack = cmos_read32(CMOS_FSP_STACK_ADDR);

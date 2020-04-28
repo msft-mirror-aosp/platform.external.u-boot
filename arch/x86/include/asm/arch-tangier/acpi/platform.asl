@@ -6,7 +6,6 @@
  */
 
 #include <asm/acpi/statdef.asl>
-#include <asm/arch/iomap.h>
 
 /*
  * The _PTS method (Prepare To Sleep) is called before the OS is
@@ -19,20 +18,7 @@ Method(_PTS, 1)
 /* The _WAK method is called on system wakeup */
 Method(_WAK, 1)
 {
-    Return (Package() { Zero, Zero })
-}
-
-Scope (_SB)
-{
-    /* Real Time Clock */
-    Device (RTC0)
-    {
-        Name (_HID, EisaId ("PNP0B00"))
-        Name (_CRS, ResourceTemplate()
-        {
-            IO(Decode16, 0x70, 0x70, 0x01, 0x08)
-        })
-    }
+    Return (Package() {0, 0})
 }
 
 /* ACPI global NVS */

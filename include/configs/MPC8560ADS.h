@@ -66,6 +66,7 @@
 /* DDR Setup */
 #define CONFIG_SPD_EEPROM		/* Use SPD EEPROM for DDR setup*/
 #define CONFIG_DDR_SPD
+#undef CONFIG_FSL_DDR_INTERACTIVE
 
 #define CONFIG_MEM_INIT_VALUE		0xDeadBeef
 
@@ -112,6 +113,8 @@
 #undef  CONFIG_SYS_RAMBOOT
 #endif
 
+#define CONFIG_FLASH_CFI_DRIVER
+#define CONFIG_SYS_FLASH_CFI
 #define CONFIG_SYS_FLASH_EMPTY_INFO
 
 #undef CONFIG_CLOCKS_IN_MHZ
@@ -250,6 +253,9 @@
 
 #ifdef CONFIG_TSEC_ENET
 
+#ifndef CONFIG_MII
+#define CONFIG_MII		1	/* MII PHY management */
+#endif
 #define CONFIG_TSEC1	1
 #define CONFIG_TSEC1_NAME	"TSEC0"
 #define CONFIG_TSEC2	1
@@ -287,6 +293,10 @@
   /* need more definitions here for FE3 */
   #define FETH3_RST		0x80
 #endif					/* CONFIG_ETHER_INDEX */
+
+#ifndef CONFIG_MII
+#define CONFIG_MII		1	/* MII PHY management */
+#endif
 
 #define CONFIG_BITBANGMII		/* bit-bang MII PHY management */
 

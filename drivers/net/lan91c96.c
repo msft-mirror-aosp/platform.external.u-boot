@@ -46,7 +46,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
 #include <malloc.h>
 #include "lan91c96.h"
 #include <net.h>

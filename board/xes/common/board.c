@@ -4,7 +4,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include "fsl_8xxx_misc.h"
 
 int checkboard(void)

@@ -45,10 +45,8 @@ struct sunxi_mmc {
 	u32 chda;		/* 0x90 */
 	u32 cbda;		/* 0x94 */
 	u32 res2[26];
-#if defined(CONFIG_SUNXI_GEN_SUN6I) || defined(CONFIG_MACH_SUN50I_H6)
-	u32 res3[17];
-	u32 samp_dl;
-	u32 res4[46];
+#ifdef CONFIG_SUNXI_GEN_SUN6I
+	u32 res3[64];
 #endif
 	u32 fifo;		/* 0x100 / 0x200 FIFO access address */
 };
@@ -131,8 +129,6 @@ struct sunxi_mmc {
 
 #define SUNXI_MMC_COMMON_CLK_GATE		(1 << 16)
 #define SUNXI_MMC_COMMON_RESET			(1 << 18)
-
-#define SUNXI_MMC_CAL_DL_SW_EN		(0x1 << 7)
 
 struct mmc *sunxi_mmc_init(int sdc_no);
 #endif /* _SUNXI_MMC_H */

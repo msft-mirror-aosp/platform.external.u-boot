@@ -4,12 +4,11 @@
  * Logic PD - http://www.logicpd.com
  */
 
-#include "omap3-u-boot.dtsi"
-
 / {
-	aliases {
-		/delete-property/ serial1;
-		/delete-property/ serial2;
+	model = "LogicPD Zoom OMAP3 Development Kit";
+
+	chosen {
+		stdout-path = &uart1;
 	};
 };
 
@@ -21,8 +20,27 @@
 	clock-frequency = <400000>;
 };
 
-/delete-node/ &uart2;
-/delete-node/ &uart3;
-/delete-node/ &mmc2;
-/delete-node/ &mmc3;
+&mmc1 {
+	cd-inverted;
+};
+
+&mmc2 {
+      status = "disabled";
+};
+
+&mmc3 {
+      status = "disabled";
+};
+
+&uart1 {
+	reg-shift = <2>;
+};
+
+&uart2 {
+	reg-shift = <2>;
+};
+
+&uart3 {
+	reg-shift = <2>;
+};
 

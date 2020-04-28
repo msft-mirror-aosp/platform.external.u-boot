@@ -108,13 +108,13 @@ static struct descriptor {
 	},
 };
 
-#if !CONFIG_IS_ENABLED(DM_USB)
+#ifndef CONFIG_DM_USB
 static struct xhci_ctrl xhcic[CONFIG_USB_MAX_CONTROLLER_COUNT];
 #endif
 
 struct xhci_ctrl *xhci_get_ctrl(struct usb_device *udev)
 {
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 	struct udevice *dev;
 
 	/* Find the USB controller */
@@ -741,7 +741,7 @@ static int _xhci_alloc_device(struct usb_device *udev)
 	return 0;
 }
 
-#if !CONFIG_IS_ENABLED(DM_USB)
+#ifndef CONFIG_DM_USB
 int usb_alloc_device(struct usb_device *udev)
 {
 	return _xhci_alloc_device(udev);
@@ -1109,8 +1109,7 @@ unknown:
  * @return 0
  */
 static int _xhci_submit_int_msg(struct usb_device *udev, unsigned long pipe,
-				void *buffer, int length, int interval,
-				bool nonblock)
+				void *buffer, int length, int interval)
 {
 	if (usb_pipetype(pipe) != PIPE_INTERRUPT) {
 		printf("non-interrupt pipe (type=%lu)", usb_pipetype(pipe));
@@ -1257,7 +1256,7 @@ static int xhci_lowlevel_stop(struct xhci_ctrl *ctrl)
 	return 0;
 }
 
-#if !CONFIG_IS_ENABLED(DM_USB)
+#ifndef CONFIG_DM_USB
 int submit_control_msg(struct usb_device *udev, unsigned long pipe,
 		       void *buffer, int length, struct devrequest *setup)
 {
@@ -1278,10 +1277,9 @@ int submit_bulk_msg(struct usb_device *udev, unsigned long pipe, void *buffer,
 }
 
 int submit_int_msg(struct usb_device *udev, unsigned long pipe, void *buffer,
-		   int length, int interval, bool nonblock)
+		   int length, int interval)
 {
-	return _xhci_submit_int_msg(udev, pipe, buffer, length, interval,
-				    nonblock);
+	return _xhci_submit_int_msg(udev, pipe, buffer, length, interval);
 }
 
 /**
@@ -1342,9 +1340,9 @@ int usb_lowlevel_stop(int index)
 
 	return 0;
 }
-#endif /* CONFIG_IS_ENABLED(DM_USB) */
+#endif /* CONFIG_DM_USB */
 
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 
 static int xhci_submit_control_msg(struct udevice *dev, struct usb_device *udev,
 				   unsigned long pipe, void *buffer, int length,
@@ -1388,11 +1386,10 @@ static int xhci_submit_bulk_msg(struct udevice *dev, struct usb_device *udev,
 
 static int xhci_submit_int_msg(struct udevice *dev, struct usb_device *udev,
 			       unsigned long pipe, void *buffer, int length,
-			       int interval, bool nonblock)
+			       int interval)
 {
 	debug("%s: dev='%s', udev=%p\n", __func__, dev->name, udev);
-	return _xhci_submit_int_msg(udev, pipe, buffer, length, interval,
-				    nonblock);
+	return _xhci_submit_int_msg(udev, pipe, buffer, length, interval);
 }
 
 static int xhci_alloc_device(struct udevice *dev, struct usb_device *udev)

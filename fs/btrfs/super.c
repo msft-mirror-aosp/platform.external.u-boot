@@ -6,7 +6,6 @@
  */
 
 #include "btrfs.h"
-#include <memalign.h>
 
 #define BTRFS_SUPER_FLAG_SUPP	(BTRFS_HEADER_FLAG_WRITTEN	\
 				 | BTRFS_HEADER_FLAG_RELOC	\
@@ -180,7 +179,7 @@ int btrfs_read_superblock(void)
 		0x4000000000ull,
 		0x4000000000000ull
 	};
-	ALLOC_CACHE_ALIGN_BUFFER(char, raw_sb, BTRFS_SUPER_INFO_SIZE);
+	char raw_sb[BTRFS_SUPER_INFO_SIZE];
 	struct btrfs_super_block *sb = (struct btrfs_super_block *) raw_sb;
 	u64 dev_total_bytes;
 	int i;
@@ -198,16 +197,17 @@ int btrfs_read_superblock(void)
 			break;
 
 		if (btrfs_check_super_csum(raw_sb)) {
-			debug("%s: invalid checksum at superblock mirror %i\n",
-			      __func__, i);
+			printf("%s: invalid checksum at superblock mirror %i\n",
+			       __func__, i);
 			continue;
 		}
 
 		btrfs_super_block_to_cpu(sb);
 
 		if (sb->magic != BTRFS_MAGIC) {
-			debug("%s: invalid BTRFS magic 0x%016llX at "
-			      "superblock mirror %i\n", __func__, sb->magic, i);
+			printf("%s: invalid BTRFS magic 0x%016llX at "
+			       "superblock mirror %i\n", __func__, sb->magic,
+			       i);
 		} else if (sb->bytenr != superblock_offsets[i]) {
 			printf("%s: invalid bytenr 0x%016llX (expected "
 			       "0x%016llX) at superblock mirror %i\n",
@@ -223,7 +223,7 @@ int btrfs_read_superblock(void)
 	}
 
 	if (!btrfs_info.sb.generation) {
-		debug("%s: No valid BTRFS superblock found!\n", __func__);
+		printf("%s: No valid BTRFS superblock found!\n", __func__);
 		return -1;
 	}
 

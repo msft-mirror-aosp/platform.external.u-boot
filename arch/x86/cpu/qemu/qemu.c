@@ -156,6 +156,12 @@ int print_cpuinfo(void)
 }
 #endif
 
+void reset_cpu(ulong addr)
+{
+	/* cold reset */
+	x86_full_reset();
+}
+
 int arch_early_init_r(void)
 {
 	qemu_chipset_init();

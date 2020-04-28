@@ -6,8 +6,6 @@
 #ifndef __UUID_H__
 #define __UUID_H__
 
-#include <linux/bitops.h>
-
 /* This is structure is in big-endian */
 struct uuid {
 	unsigned int time_low;
@@ -18,10 +16,10 @@ struct uuid {
 	unsigned char node[6];
 } __packed;
 
-/* Bits of a bitmask specifying the output format for GUIDs */
-#define UUID_STR_FORMAT_STD	0
-#define UUID_STR_FORMAT_GUID	BIT(0)
-#define UUID_STR_UPPER_CASE	BIT(1)
+enum {
+	UUID_STR_FORMAT_STD,
+	UUID_STR_FORMAT_GUID
+};
 
 #define UUID_STR_LEN		36
 #define UUID_BIN_LEN		sizeof(struct uuid)

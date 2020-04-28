@@ -13,15 +13,13 @@
 #include <efi_selftest.h>
 #include <linux/libfdt.h>
 
-static const struct efi_system_table *systemtab;
-static const struct efi_boot_services *boottime;
+static struct efi_boot_services *boottime;
 static const char *fdt;
 
-/* This should be sufficient for */
+/* This should be sufficent for */
 #define BUFFERSIZE 0x100000
 
-static const efi_guid_t fdt_guid = EFI_FDT_GUID;
-static const efi_guid_t acpi_guid = EFI_ACPI_TABLE_GUID;
+static efi_guid_t fdt_guid = EFI_FDT_GUID;
 
 /*
  * Convert FDT value to host endianness.
@@ -117,23 +115,6 @@ static char *get_property(const u16 *property)
 	}
 }
 
-/**
- * efi_st_get_config_table() - get configuration table
- *
- * @guid:	GUID of the configuration table
- * Return:	pointer to configuration table or NULL
- */
-static void *efi_st_get_config_table(const efi_guid_t *guid)
-{
-	size_t i;
-
-	for (i = 0; i < systab.nr_tables; i++) {
-		if (!guidcmp(guid, &systemtab->tables[i].guid))
-			return systemtab->tables[i].table;
-	}
-	return NULL;
-}
-
 /*
  * Setup unit test.
  *
@@ -144,22 +125,21 @@ static void *efi_st_get_config_table(const efi_guid_t *guid)
 static int setup(const efi_handle_t img_handle,
 		 const struct efi_system_table *systable)
 {
-	void *acpi;
+	efi_uintn_t i;
 
-	systemtab = systable;
 	boottime = systable->boottime;
 
-	acpi = efi_st_get_config_table(&acpi_guid);
-	fdt = efi_st_get_config_table(&fdt_guid);
-
+	/* Find configuration tables */
+	for (i = 0; i < systable->nr_tables; ++i) {
+		if (!efi_st_memcmp(&systable->tables[i].guid, &fdt_guid,
+				   sizeof(efi_guid_t)))
+			fdt = systable->tables[i].table;
+	}
 	if (!fdt) {
 		efi_st_error("Missing device tree\n");
 		return EFI_ST_FAILURE;
 	}
-	if (acpi) {
-		efi_st_error("Found ACPI table and device tree\n");
-		return EFI_ST_FAILURE;
-	}
+
 	return EFI_ST_SUCCESS;
 }
 
@@ -203,4 +183,5 @@ EFI_UNIT_TEST(fdt) = {
 	.phase = EFI_EXECUTE_BEFORE_BOOTTIME_EXIT,
 	.setup = setup,
 	.execute = execute,
+	.on_request = true,
 };

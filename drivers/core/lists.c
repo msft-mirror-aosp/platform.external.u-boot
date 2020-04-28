@@ -122,8 +122,7 @@ static int driver_check_compatible(const struct udevice_id *of_match,
 	return -ENOENT;
 }
 
-int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp,
-		   bool pre_reloc_only)
+int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp)
 {
 	struct driver *driver = ll_entry_start(struct driver, driver);
 	const int n_ents = ll_entry_count(struct driver, driver);
@@ -171,12 +170,6 @@ int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp,
 		}
 		if (entry == driver + n_ents)
 			continue;
-
-		if (pre_reloc_only) {
-			if (!dm_ofnode_pre_reloc(node) &&
-			    !(entry->flags & DM_FLAG_PRE_RELOC))
-				return 0;
-		}
 
 		pr_debug("   - found match at '%s'\n", entry->name);
 		ret = device_bind_with_driver_data(parent, entry, name,

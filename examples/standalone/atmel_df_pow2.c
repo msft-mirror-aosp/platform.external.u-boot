@@ -126,6 +126,8 @@ int atmel_df_pow2(int argc, char * const argv[])
 		return 1;
 	}
 
+	spi_init();
+
 	while (1) {
 		struct spi_slave *slave;
 		char *line, *p;

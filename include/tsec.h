@@ -17,8 +17,6 @@
 #include <config.h>
 #include <phy.h>
 
-#define TSEC_MDIO_REGS_OFFSET	0x520
-
 #ifndef CONFIG_DM_ETH
 
 #ifdef CONFIG_ARCH_LS1021A
@@ -29,7 +27,7 @@
 #define TSEC_MDIO_OFFSET	0x01000
 #endif
 
-#define CONFIG_SYS_MDIO_BASE_ADDR (MDIO_BASE_ADDR + TSEC_MDIO_REGS_OFFSET)
+#define CONFIG_SYS_MDIO_BASE_ADDR (MDIO_BASE_ADDR + 0x520)
 
 #define TSEC_GET_REGS(num, offset) \
 	(struct tsec __iomem *)\

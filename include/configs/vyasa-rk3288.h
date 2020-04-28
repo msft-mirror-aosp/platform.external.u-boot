@@ -17,6 +17,7 @@
 	func(MMC, mmc, 1) \
 
 #define CONFIG_SYS_MMC_ENV_DEV 1
+#undef CONFIG_CMD_USB_MASS_STORAGE
 
 #ifndef CONFIG_TPL_BUILD
 

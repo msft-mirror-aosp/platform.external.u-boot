@@ -273,10 +273,6 @@ static int cread_line(const char *const prompt, char *buf, unsigned int *len,
 
 		ichar = getcmd_getch();
 
-		/* ichar=0x0 when error occurs in U-Boot getc */
-		if (!ichar)
-			continue;
-
 		if ((ichar == '\n') || (ichar == '\r')) {
 			putc('\n');
 			break;

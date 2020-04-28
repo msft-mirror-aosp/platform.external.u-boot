@@ -6,13 +6,6 @@
 #ifndef __MACH_STM32MP_DDR_H_
 #define __MACH_STM32MP_DDR_H_
 
-/* DDR power initializations */
-enum ddr_type {
-	STM32MP_DDR3,
-	STM32MP_LPDDR2,
-	STM32MP_LPDDR3,
-};
-
-int board_ddr_power_init(enum ddr_type ddr_type);
+int board_ddr_power_init(void);
 
 #endif

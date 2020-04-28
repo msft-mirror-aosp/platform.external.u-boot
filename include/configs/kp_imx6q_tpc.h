@@ -25,11 +25,17 @@
 #define CONFIG_SYS_MALLOC_LEN		(4 * SZ_1M)
 
 /* FEC ethernet */
+#define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_XCV_TYPE		RGMII
 #define CONFIG_ETHPRIME			"FEC"
 #define CONFIG_FEC_MXC_PHYADDR		0
 #define CONFIG_ARP_TIMEOUT		200UL
+
+/* Fuses */
+#ifdef CONFIG_CMD_FUSE
+#define CONFIG_MXC_OCOTP
+#endif
 
 /* I2C Configs */
 #define CONFIG_SYS_I2C
@@ -39,6 +45,8 @@
 #define CONFIG_SYS_I2C_SPEED		100000
 
 /* MMC Configs */
+#define CONFIG_FSL_ESDHC
+#define CONFIG_FSL_USDHC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	0
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #define CONFIG_SYS_MMC_ENV_DEV		1 /* 0 = SDHC2, 1 = SDHC4 (eMMC) */
@@ -60,6 +68,8 @@
 #endif
 
 /* Watchdog */
+#define CONFIG_HW_WATCHDOG
+#define CONFIG_IMX_WATCHDOG
 #define CONFIG_WATCHDOG_TIMEOUT_MSECS	60000
 
 /* allow to overwrite serial and ethaddr */
@@ -106,6 +116,7 @@
 #endif
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM

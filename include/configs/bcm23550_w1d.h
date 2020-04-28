@@ -20,6 +20,7 @@
 
 #define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define CONFIG_SYS_SDRAM_SIZE		0x20000000
+#define CONFIG_NR_DRAM_BANKS		1
 
 #define CONFIG_SYS_MALLOC_LEN		SZ_4M	/* see armv7/start.S. */
 
@@ -55,6 +56,7 @@
 #define CONFIG_SYS_TIMER_COUNTER	(TIMER_BASE_ADDR + 4) /* STCLO offset */
 
 /* Init functions */
+#define CONFIG_MISC_INIT_R	/* board's misc_init_r function */
 
 /* Some commands use this as the default load address */
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
@@ -93,11 +95,15 @@
 
 /* version string, parser, etc */
 
+#define CONFIG_MX_CYCLIC
+
 /* Initial upstream - boot to cmd prompt only */
 #define CONFIG_BOOTCOMMAND		""
 
 #define CONFIG_USBID_ADDR		0x34052c46
 
+#define CONFIG_SYS_ICACHE_OFF
+#define CONFIG_SYS_DCACHE_OFF
 #define CONFIG_SYS_L2CACHE_OFF
 
 #endif /* __BCM23550_W1D_H */

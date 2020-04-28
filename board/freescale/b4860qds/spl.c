@@ -4,8 +4,7 @@
 
 #include <common.h>
 #include <console.h>
-#include <env.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <asm/spl.h>
 #include <malloc.h>
 #include <ns16550.h>

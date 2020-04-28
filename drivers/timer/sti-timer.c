@@ -74,4 +74,5 @@ U_BOOT_DRIVER(sti_timer) = {
 	.priv_auto_alloc_size = sizeof(struct sti_timer_priv),
 	.probe = sti_timer_probe,
 	.ops = &sti_timer_ops,
+	.flags = DM_FLAG_PRE_RELOC,
 };

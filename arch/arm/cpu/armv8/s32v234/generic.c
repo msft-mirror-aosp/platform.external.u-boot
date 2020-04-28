@@ -342,7 +342,7 @@ int cpu_eth_init(bd_t * bis)
 
 int get_clocks(void)
 {
-#ifdef CONFIG_FSL_ESDHC_IMX
+#ifdef CONFIG_FSL_ESDHC
 	gd->arch.sdhc_clk = mxc_get_clock(MXC_USDHC_CLK);
 #endif
 	return 0;

@@ -65,6 +65,7 @@
 #define CONFIG_ENV_OVERWRITE
 #define CONFIG_SYS_UART_PORT		(1)
 
+#define CONFIG_FSL_USDHC
 #define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC_BASE_ADDR
 #define CONFIG_SYS_FSL_ESDHC_NUM	1
 
@@ -76,6 +77,7 @@
 /* Ethernet config */
 #define CONFIG_CMD_MII
 #define CONFIG_FEC_MXC
+#define CONFIG_MII
 #define IMX_FEC_BASE            ENET_BASE_ADDR
 #define CONFIG_FEC_XCV_TYPE     RMII
 #define CONFIG_FEC_MXC_PHYADDR  0
@@ -146,6 +148,7 @@
 #include <config_distro_bootcmd.h>
 
 /* Miscellaneous configurable options */
+#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #define CONFIG_SYS_PROMPT		"=> "
 
 #define CONFIG_SYS_MEMTEST_START	(DDR_BASE_ADDR)
@@ -165,6 +168,7 @@
 
 /* Physical memory map */
 /* EVB board has 2x256 MB DDR chips, DDR0 and DDR1, u-boot is using just one */
+#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM			(DDR_BASE_ADDR)
 #define PHYS_SDRAM_SIZE			(256 * 1024 * 1024)
 

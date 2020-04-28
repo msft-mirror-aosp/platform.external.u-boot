@@ -12,8 +12,6 @@
  */
 
 #include <common.h>
-#include <env.h>
-#include <gzip.h>
 #include <memalign.h>
 #include "ubifs.h"
 #include <u-boot/zlib.h>
@@ -127,7 +125,6 @@ crypto_comp_decompress(const struct ubifs_info *c, struct crypto_comp *tfm,
 {
 	struct ubifs_compressor *compr = ubifs_compressors[tfm->compressor];
 	int err;
-	size_t tmp_len = *dlen;
 
 	if (compr->compr_type == UBIFS_COMPR_NONE) {
 		memcpy(dst, src, slen);
@@ -135,12 +132,11 @@ crypto_comp_decompress(const struct ubifs_info *c, struct crypto_comp *tfm,
 		return 0;
 	}
 
-	err = compr->decompress(src, slen, dst, &tmp_len);
+	err = compr->decompress(src, slen, dst, (size_t *)dlen);
 	if (err)
 		ubifs_err(c, "cannot decompress %d bytes, compressor %s, "
 			  "error %d", slen, compr->name, err);
 
-	*dlen = tmp_len;
 	return err;
 
 	return 0;

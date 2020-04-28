@@ -6,7 +6,6 @@
  */
 
 #include <asm-offsets.h>
-#include <asm/assembler.h>
 #include <config.h>
 #include <elf.h>
 #include <linux/linkage.h>

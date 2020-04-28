@@ -17,25 +17,26 @@
 	 */
 	.globl	ImageBase
 ImageBase:
-	.short	IMAGE_DOS_SIGNATURE		/* 'MZ' */
+	.ascii	"MZ"
 	.skip	58				/* 'MZ' + pad + offset == 64 */
 	.long	pe_header - ImageBase		/* Offset to the PE header */
 pe_header:
-	.long	IMAGE_NT_SIGNATURE		/* 'PE' */
+	.ascii	"PE"
+	.short	0
 coff_header:
-	.short	IMAGE_FILE_MACHINE_ARM64	/* AArch64 */
+	.short	0xaa64				/* AArch64 */
 	.short	2				/* nr_sections */
 	.long	0				/* TimeDateStamp */
 	.long	0				/* PointerToSymbolTable */
-	.long	0				/* NumberOfSymbols */
+	.long	1				/* NumberOfSymbols */
 	.short	section_table - optional_header	/* SizeOfOptionalHeader */
-	/* Characteristics */
-	.short	(IMAGE_FILE_EXECUTABLE_IMAGE | \
-		 IMAGE_FILE_LINE_NUMS_STRIPPED | \
-		 IMAGE_FILE_LOCAL_SYMS_STRIPPED | \
-		 IMAGE_FILE_DEBUG_STRIPPED)
+	/*
+	 * Characteristics: IMAGE_FILE_DEBUG_STRIPPED |
+	 * IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LINE_NUMS_STRIPPED
+	 */
+	.short	0x206
 optional_header:
-	.short	IMAGE_NT_OPTIONAL_HDR64_MAGIC	/* PE32+ format */
+	.short	0x20b				/* PE32+ format */
 	.byte	0x02				/* MajorLinkerVersion */
 	.byte	0x14				/* MinorLinkerVersion */
 	.long	_edata - _start			/* SizeOfCode */
@@ -121,6 +122,8 @@ _start:
 	mov		x29, sp
 
 	stp		x0, x1, [sp, #16]
+	mov		x2, x0
+	mov		x3, x1
 	adr		x0, ImageBase
 	adrp		x1, _DYNAMIC
 	add		x1, x1, #:lo12:_DYNAMIC

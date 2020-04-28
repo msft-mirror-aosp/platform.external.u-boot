@@ -32,8 +32,20 @@
 #define CONFIG_SYS_LOAD_ADDR		0x82000000
 
 /*
+ * This board might be of different versions so handle it
+ */
+#define CONFIG_BOARD_TYPES
+
+/*
+ * NAND Flash configuration
+ */
+#define CONFIG_SYS_NAND_BASE		(ARC_FPGA_PERIPHERAL_BASE + 0x16000)
+#define CONFIG_SYS_MAX_NAND_DEVICE	1
+
+/*
  * UART configuration
  */
+#define CONFIG_DW_SERIAL
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_CLK		33333333
 #define CONFIG_SYS_NS16550_MEM32
@@ -41,6 +53,7 @@
 /*
  * Ethernet PHY configuration
  */
+#define CONFIG_MII
 
 /*
  * USB 1.1 configuration
@@ -51,13 +64,7 @@
 /*
  * Environment settings
  */
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	"upgrade=if mmc rescan && " \
-		"fatload mmc 0:1 ${loadaddr} u-boot-update.img && " \
-		"iminfo ${loadaddr} && source ${loadaddr}; then; else echo " \
-		"\"Fail to upgrade.\n" \
-		"Do you have u-boot-update.img and u-boot.head on first (FAT) SD card partition?\"" \
-		"; fi\0"
+#define CONFIG_ENV_SIZE			SZ_16K
 
 /*
  * Environment configuration
@@ -68,5 +75,10 @@
 /*
  * Console configuration
  */
+
+/*
+ * Misc utility configuration
+ */
+#define CONFIG_BOUNCE_BUFFER
 
 #endif /* _CONFIG_AXS10X_H_ */

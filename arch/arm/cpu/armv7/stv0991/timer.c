@@ -21,8 +21,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define timestamp gd->arch.tbl
 #define lastdec gd->arch.lastinc
 
-static ulong get_timer_masked(void);
-
 int timer_init(void)
 {
 	/* Timer1 clock configuration */
@@ -75,7 +73,7 @@ void __udelay(unsigned long usec)
 		;
 }
 
-static ulong get_timer_masked(void)
+ulong get_timer_masked(void)
 {
 	ulong now = READ_TIMER();
 
@@ -89,6 +87,11 @@ static ulong get_timer_masked(void)
 	lastdec = now;
 
 	return timestamp;
+}
+
+void udelay_masked(unsigned long usec)
+{
+	return udelay(usec);
 }
 
 /*

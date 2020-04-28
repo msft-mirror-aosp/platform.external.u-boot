@@ -5,8 +5,6 @@
  */
 #include <common.h>
 #include <asm/io.h>
-#include <env.h>
-#include <linux/ctype.h>
 
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
@@ -16,18 +14,14 @@ int arch_cpu_init(void)
 }
 #endif
 
-/* R-Car Gen3 D-cache is enabled in memmap-gen3.c */
-#ifndef CONFIG_RCAR_GEN3
-#if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
+#ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
 {
 	dcache_enable();
 }
 #endif
-#endif
 
 #ifdef CONFIG_DISPLAY_CPUINFO
-#ifndef CONFIG_RZA1
 static u32 __rmobile_get_cpu_type(void)
 {
 	return 0x0;
@@ -65,54 +59,24 @@ static const struct {
 	{ RMOBILE_CPU_TYPE_R8A7796, "R8A7796" },
 	{ RMOBILE_CPU_TYPE_R8A77965, "R8A77965" },
 	{ RMOBILE_CPU_TYPE_R8A77970, "R8A77970" },
-	{ RMOBILE_CPU_TYPE_R8A77980, "R8A77980" },
 	{ RMOBILE_CPU_TYPE_R8A77990, "R8A77990" },
 	{ RMOBILE_CPU_TYPE_R8A77995, "R8A77995" },
 	{ 0x0, "CPU" },
 };
 
-static int rmobile_cpuinfo_idx(void)
+int print_cpuinfo(void)
 {
 	int i = 0;
 	u32 cpu_type = rmobile_get_cpu_type();
-
-	for (; i < ARRAY_SIZE(rmobile_cpuinfo); i++)
-		if (rmobile_cpuinfo[i].cpu_type == cpu_type)
+	for (; i < ARRAY_SIZE(rmobile_cpuinfo); i++) {
+		if (rmobile_cpuinfo[i].cpu_type == cpu_type) {
+			printf("CPU: Renesas Electronics %s rev %d.%d\n",
+			       rmobile_cpuinfo[i].cpu_name,
+			       rmobile_get_cpu_rev_integer(),
+			       rmobile_get_cpu_rev_fraction());
 			break;
-
-	return i;
-}
-
-#ifdef CONFIG_ARCH_MISC_INIT
-int arch_misc_init(void)
-{
-	int i, idx = rmobile_cpuinfo_idx();
-	char cpu[10] = { 0 };
-
-	for (i = 0; i < sizeof(cpu); i++)
-		cpu[i] = tolower(rmobile_cpuinfo[idx].cpu_name[i]);
-
-	env_set("platform", cpu);
-
+		}
+	}
 	return 0;
 }
-#endif
-
-int print_cpuinfo(void)
-{
-	int i = rmobile_cpuinfo_idx();
-
-	printf("CPU: Renesas Electronics %s rev %d.%d\n",
-		rmobile_cpuinfo[i].cpu_name, rmobile_get_cpu_rev_integer(),
-		rmobile_get_cpu_rev_fraction());
-
-	return 0;
-}
-#else
-int print_cpuinfo(void)
-{
-	printf("CPU: Renesas Electronics RZ/A1\n");
-	return 0;
-}
-#endif
 #endif /* CONFIG_DISPLAY_CPUINFO */

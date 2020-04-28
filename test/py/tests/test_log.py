@@ -85,11 +85,6 @@ def test_log(u_boot_console):
         lines = run_test(9)
         check_log_entries(lines, 3)
 
-    def test10():
-        lines = run_test(10)
-        for i in range(7):
-            assert 'log_test() level %d' % i == lines.next()
-
     # TODO(sjg@chromium.org): Consider structuring this as separate tests
     cons = u_boot_console
     test0()
@@ -102,7 +97,6 @@ def test_log(u_boot_console):
     test7()
     test8()
     test9()
-    test10()
 
 @pytest.mark.buildconfigspec('cmd_log')
 def test_log_format(u_boot_console):

@@ -61,7 +61,7 @@ void socfpga_bridges_reset(int enable)
 		/* clear idle request to all bridges */
 		setbits_le32(&system_manager_base->noc_idlereq_clr, ~0);
 
-		/* Release all bridges from reset state */
+		/* Release bridges from reset state per handoff value */
 		clrbits_le32(&reset_manager_base->brgmodrst, ~0);
 
 		/* Poll until all idleack to 0 */
@@ -84,21 +84,57 @@ void socfpga_bridges_reset(int enable)
 			(SYSMGR_NOC_H2F_MSK | SYSMGR_NOC_LWH2F_MSK)))
 			;
 
-		/* Reset all bridges (except NOR DDR scheduler & F2S) */
+		/* Put all bridges (except NOR DDR scheduler) into reset */
 		setbits_le32(&reset_manager_base->brgmodrst,
-			     ~(RSTMGR_BRGMODRST_DDRSCH_MASK |
-			     RSTMGR_BRGMODRST_FPGA2SOC_MASK));
+			     ~RSTMGR_BRGMODRST_DDRSCH_MASK);
 
 		/* Disable NOC timeout */
 		writel(0, &system_manager_base->noc_timeout);
 	}
 }
 
-/*
- * Return non-zero if the CPU has been warm reset
+/* of_reset_id: emac reset id
+ * state: 0 - disable reset, !0 - enable reset
  */
-int cpu_has_been_warmreset(void)
+void socfpga_emac_manage_reset(const unsigned int of_reset_id, u32 state)
 {
-	return readl(&reset_manager_base->status) &
-		RSTMGR_L4WD_MPU_WARMRESET_MASK;
+	u32 reset_emac;
+	u32 reset_emacocp;
+
+	/* hardcode this now */
+	switch (of_reset_id) {
+	case EMAC0_RESET:
+		reset_emac = SOCFPGA_RESET(EMAC0);
+		reset_emacocp = SOCFPGA_RESET(EMAC0_OCP);
+		break;
+	case EMAC1_RESET:
+		reset_emac = SOCFPGA_RESET(EMAC1);
+		reset_emacocp = SOCFPGA_RESET(EMAC1_OCP);
+		break;
+	case EMAC2_RESET:
+		reset_emac = SOCFPGA_RESET(EMAC2);
+		reset_emacocp = SOCFPGA_RESET(EMAC2_OCP);
+		break;
+	default:
+		printf("GMAC: Invalid reset ID (%i)!\n", of_reset_id);
+		hang();
+		break;
+	}
+
+	/* Reset ECC OCP first */
+	socfpga_per_reset(reset_emacocp, state);
+
+	/* Release the EMAC controller from reset */
+	socfpga_per_reset(reset_emac, state);
+}
+
+/*
+ * Release peripherals from reset based on handoff
+ */
+void reset_deassert_peripherals_handoff(void)
+{
+	writel(0, &reset_manager_base->per1modrst);
+	/* Enable OCP first */
+	writel(~RSTMGR_PER0MODRST_OCP_MASK, &reset_manager_base->per0modrst);
+	writel(0, &reset_manager_base->per0modrst);
 }

@@ -6,7 +6,11 @@
 #ifndef _BCM2835_WDOG_H
 #define _BCM2835_WDOG_H
 
-#define BCM2835_WDOG_PHYSADDR	(CONFIG_BCM283x_BASE + 0x00100000)
+#ifndef CONFIG_BCM2835
+#define BCM2835_WDOG_PHYSADDR			0x3f100000
+#else
+#define BCM2835_WDOG_PHYSADDR			0x20100000
+#endif
 
 struct bcm2835_wdog_regs {
 	u32 unknown0[7];

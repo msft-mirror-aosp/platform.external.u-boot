@@ -15,8 +15,7 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <linux/stddef.h>
 #include <malloc.h>
 #include <memalign.h>
@@ -27,7 +26,7 @@
 #if defined(CONFIG_CMD_SAVEENV) && defined(CONFIG_CMD_NAND) && \
 		!defined(CONFIG_SPL_BUILD)
 #define CMD_SAVEENV
-#elif defined(CONFIG_ENV_OFFSET_REDUND) && !defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_ENV_OFFSET_REDUND)
 #error CONFIG_ENV_OFFSET_REDUND must have CONFIG_CMD_SAVEENV & CONFIG_CMD_NAND
 #endif
 
@@ -41,9 +40,11 @@
 #endif
 
 #if defined(ENV_IS_EMBEDDED)
-static env_t *env_ptr = &environment;
+env_t *env_ptr = &environment;
 #elif defined(CONFIG_NAND_ENV_DST)
-static env_t *env_ptr = (env_t *)CONFIG_NAND_ENV_DST;
+env_t *env_ptr = (env_t *)CONFIG_NAND_ENV_DST;
+#else /* ! ENV_IS_EMBEDDED */
+env_t *env_ptr;
 #endif /* ENV_IS_EMBEDDED */
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -326,7 +327,7 @@ static int env_nand_load(void)
 	tmp_env2 = (env_t *)malloc(CONFIG_ENV_SIZE);
 	if (tmp_env1 == NULL || tmp_env2 == NULL) {
 		puts("Can't allocate buffers for environment\n");
-		env_set_default("malloc() failed", 0);
+		set_default_env("!malloc() failed");
 		ret = -EIO;
 		goto done;
 	}
@@ -365,14 +366,14 @@ static int env_nand_load(void)
 	if (mtd && !get_nand_env_oob(mtd, &nand_env_oob_offset)) {
 		printf("Found Environment offset in OOB..\n");
 	} else {
-		env_set_default("no env offset in OOB", 0);
+		set_default_env("!no env offset in OOB");
 		return;
 	}
 #endif
 
 	ret = readenv(CONFIG_ENV_OFFSET, (u_char *)buf);
 	if (ret) {
-		env_set_default("readenv() failed", 0);
+		set_default_env("!readenv() failed");
 		return -EIO;
 	}
 

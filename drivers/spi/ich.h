@@ -100,8 +100,13 @@ enum {
 	HSFC_FSMIE =		0x8000
 };
 
+enum {
+	ICH_MAX_CMD_LEN		= 5,
+};
+
 struct spi_trans {
-	uint8_t cmd;
+	uint8_t cmd[ICH_MAX_CMD_LEN];
+	int cmd_len;
 	const uint8_t *out;
 	uint32_t bytesout;
 	uint8_t *in;
@@ -160,8 +165,6 @@ struct spi_trans {
 			  (SPI_OPMENU_5 <<  8) | (SPI_OPMENU_4 <<  0))
 #define SPI_OPMENU_LOWER ((SPI_OPMENU_3 << 24) | (SPI_OPMENU_2 << 16) | \
 			  (SPI_OPMENU_1 <<  8) | (SPI_OPMENU_0 <<  0))
-
-#define ICH_BOUNDARY	0x1000
 
 enum ich_version {
 	ICHV_7,

@@ -87,17 +87,14 @@ struct idr_layer {
 
 struct idr {
 	struct idr_layer id[MAX_IDR_ID];
-	bool updated;
 };
 
 #define DEFINE_IDR(name)	struct idr name;
 
 void idr_remove(struct idr *idp, int id)
 {
-	if (idp->id[id].used) {
+	if (idp->id[id].used)
 		idp->id[id].used = 0;
-		idp->updated = true;
-	}
 
 	return;
 }
@@ -137,7 +134,6 @@ int idr_alloc(struct idr *idp, void *ptr, int start, int end, gfp_t gfp_mask)
 		if (idl->used == 0) {
 			idl->used = 1;
 			idl->ptr = ptr;
-			idp->updated = true;
 			return i;
 		}
 		i++;
@@ -158,16 +154,6 @@ struct mtd_info *__mtd_next_device(int i)
 	return idr_get_next(&mtd_idr, &i);
 }
 EXPORT_SYMBOL_GPL(__mtd_next_device);
-
-bool mtd_dev_list_updated(void)
-{
-	if (mtd_idr.updated) {
-		mtd_idr.updated = false;
-		return true;
-	}
-
-	return false;
-}
 
 #ifndef __UBOOT__
 static LIST_HEAD(mtd_notifiers);
@@ -440,8 +426,6 @@ int add_mtd_device(struct mtd_info *mtd)
 	mtd->index = i;
 	mtd->usecount = 0;
 
-	INIT_LIST_HEAD(&mtd->partitions);
-
 	/* default value if not set by driver */
 	if (mtd->bitflip_threshold == 0)
 		mtd->bitflip_threshold = mtd->ecc_strength;
@@ -527,13 +511,6 @@ int del_mtd_device(struct mtd_info *mtd)
 #ifndef __UBOOT__
 	struct mtd_notifier *not;
 #endif
-
-	ret = del_mtd_partitions(mtd);
-	if (ret) {
-		debug("Failed to delete MTD partitions attached to %s (err %d)\n",
-		      mtd->name, ret);
-		return ret;
-	}
 
 	mutex_lock(&mtd_table_mutex);
 
@@ -960,20 +937,7 @@ int mtd_read(struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen,
 	 * representing the maximum number of bitflips that were corrected on
 	 * any one ecc region (if applicable; zero otherwise).
 	 */
-	if (mtd->_read) {
-		ret_code = mtd->_read(mtd, from, len, retlen, buf);
-	} else if (mtd->_read_oob) {
-		struct mtd_oob_ops ops = {
-			.len = len,
-			.datbuf = buf,
-		};
-
-		ret_code = mtd->_read_oob(mtd, from, &ops);
-		*retlen = ops.retlen;
-	} else {
-		return -ENOTSUPP;
-	}
-
+	ret_code = mtd->_read(mtd, from, len, retlen, buf);
 	if (unlikely(ret_code < 0))
 		return ret_code;
 	if (mtd->ecc_strength == 0)
@@ -988,24 +952,10 @@ int mtd_write(struct mtd_info *mtd, loff_t to, size_t len, size_t *retlen,
 	*retlen = 0;
 	if (to < 0 || to > mtd->size || len > mtd->size - to)
 		return -EINVAL;
-	if ((!mtd->_write && !mtd->_write_oob) ||
-	    !(mtd->flags & MTD_WRITEABLE))
+	if (!mtd->_write || !(mtd->flags & MTD_WRITEABLE))
 		return -EROFS;
 	if (!len)
 		return 0;
-
-	if (!mtd->_write) {
-		struct mtd_oob_ops ops = {
-			.len = len,
-			.datbuf = (u8 *)buf,
-		};
-		int ret;
-
-		ret = mtd->_write_oob(mtd, to, &ops);
-		*retlen = ops.retlen;
-		return ret;
-	}
-
 	return mtd->_write(mtd, to, len, retlen, buf);
 }
 EXPORT_SYMBOL_GPL(mtd_write);
@@ -1033,64 +983,19 @@ int mtd_panic_write(struct mtd_info *mtd, loff_t to, size_t len, size_t *retlen,
 }
 EXPORT_SYMBOL_GPL(mtd_panic_write);
 
-static int mtd_check_oob_ops(struct mtd_info *mtd, loff_t offs,
-			     struct mtd_oob_ops *ops)
-{
-	/*
-	 * Some users are setting ->datbuf or ->oobbuf to NULL, but are leaving
-	 * ->len or ->ooblen uninitialized. Force ->len and ->ooblen to 0 in
-	 *  this case.
-	 */
-	if (!ops->datbuf)
-		ops->len = 0;
-
-	if (!ops->oobbuf)
-		ops->ooblen = 0;
-
-	if (offs < 0 || offs + ops->len > mtd->size)
-		return -EINVAL;
-
-	if (ops->ooblen) {
-		size_t maxooblen;
-
-		if (ops->ooboffs >= mtd_oobavail(mtd, ops))
-			return -EINVAL;
-
-		maxooblen = ((size_t)(mtd_div_by_ws(mtd->size, mtd) -
-				      mtd_div_by_ws(offs, mtd)) *
-			     mtd_oobavail(mtd, ops)) - ops->ooboffs;
-		if (ops->ooblen > maxooblen)
-			return -EINVAL;
-	}
-
-	return 0;
-}
-
 int mtd_read_oob(struct mtd_info *mtd, loff_t from, struct mtd_oob_ops *ops)
 {
 	int ret_code;
 	ops->retlen = ops->oobretlen = 0;
-
-	ret_code = mtd_check_oob_ops(mtd, from, ops);
-	if (ret_code)
-		return ret_code;
-
-	/* Check the validity of a potential fallback on mtd->_read */
-	if (!mtd->_read_oob && (!mtd->_read || ops->oobbuf))
+	if (!mtd->_read_oob)
 		return -EOPNOTSUPP;
-
-	if (mtd->_read_oob)
-		ret_code = mtd->_read_oob(mtd, from, ops);
-	else
-		ret_code = mtd->_read(mtd, from, ops->len, &ops->retlen,
-				      ops->datbuf);
-
 	/*
 	 * In cases where ops->datbuf != NULL, mtd->_read_oob() has semantics
 	 * similar to mtd->_read(), returning a non-negative integer
 	 * representing max bitflips. In other cases, mtd->_read_oob() may
 	 * return -EUCLEAN. In all cases, perform similar logic to mtd_read().
 	 */
+	ret_code = mtd->_read_oob(mtd, from, ops);
 	if (unlikely(ret_code < 0))
 		return ret_code;
 	if (mtd->ecc_strength == 0)
@@ -1098,32 +1003,6 @@ int mtd_read_oob(struct mtd_info *mtd, loff_t from, struct mtd_oob_ops *ops)
 	return ret_code >= mtd->bitflip_threshold ? -EUCLEAN : 0;
 }
 EXPORT_SYMBOL_GPL(mtd_read_oob);
-
-int mtd_write_oob(struct mtd_info *mtd, loff_t to,
-				struct mtd_oob_ops *ops)
-{
-	int ret;
-
-	ops->retlen = ops->oobretlen = 0;
-
-	if (!(mtd->flags & MTD_WRITEABLE))
-		return -EROFS;
-
-	ret = mtd_check_oob_ops(mtd, to, ops);
-	if (ret)
-		return ret;
-
-	/* Check the validity of a potential fallback on mtd->_write */
-	if (!mtd->_write_oob && (!mtd->_write || ops->oobbuf))
-		return -EOPNOTSUPP;
-
-	if (mtd->_write_oob)
-		return mtd->_write_oob(mtd, to, ops);
-	else
-		return mtd->_write(mtd, to, ops->len, &ops->retlen,
-				   ops->datbuf);
-}
-EXPORT_SYMBOL_GPL(mtd_write_oob);
 
 /**
  * mtd_ooblayout_ecc - Get the OOB region definition of a specific ECC section

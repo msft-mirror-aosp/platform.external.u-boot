@@ -17,6 +17,8 @@
 #include <linux/compat.h>
 #include <rtc.h>
 
+#if defined(CONFIG_CMD_DATE)
+
 #include <asm/io.h>
 #include <asm/arch/imx-regs.h>
 
@@ -220,3 +222,5 @@ void rtc_reset(void)
 {
 	di_init();
 }
+
+#endif

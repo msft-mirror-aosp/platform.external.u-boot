@@ -39,18 +39,6 @@
 	};
 };
 
-&enet {
-	status = "okay";
-	phy = <&enetphy>;
-	phy-mode = "mii";
-
-	enetphy: fixed-link {
-		reg = <1>;
-		speed = <100>;
-		full-duplex;
-	};
-};
-
 &gpio {
 	status = "okay";
 };
@@ -59,7 +47,7 @@
 	status = "okay";
 
 	spi-flash@0 {
-		compatible = "jedec,spi-nor";
+		compatible = "spi-flash";
 		reg = <0>;
 		#address-cells = <1>;
 		#size-cells = <1>;

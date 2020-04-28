@@ -19,14 +19,13 @@
 #include <common.h>
 #include <console.h>
 #include <dm.h>
-#include <env.h>
 #include <errno.h>
 #include <fdt_support.h>
 #include <asm/processor.h>
 #include <asm/io.h>
 #include <asm/byteorder.h>
 #include <asm/unaligned.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <mtd/cfi_flash.h>
 #include <watchdog.h>
 

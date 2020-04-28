@@ -22,6 +22,7 @@
 #include <efi_loader.h>
 #include <asm/proc-armv/ptrace.h>
 #include <asm/u-boot-arm.h>
+#include <efi_loader.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

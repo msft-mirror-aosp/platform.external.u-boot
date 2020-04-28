@@ -4,8 +4,6 @@
  * Dirk Eibach,  Guntermann & Drunck GmbH, dirk.eibach@gdsys.cc
  */
 
-#ifdef CONFIG_GDSYS_LEGACY_DRIVERS
-
 #include <common.h>
 #include <asm/io.h>
 #include <errno.h>
@@ -136,5 +134,3 @@ int mclink_receive(u8 slave, u16 addr, u16 *data)
 
 	return 0;
 }
-
-#endif /* CONFIG_GDSYS_LEGACY_DRIVERS */

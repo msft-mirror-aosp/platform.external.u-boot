@@ -13,7 +13,6 @@
 
 #include <common.h>
 #include <cli.h>
-#include <env.h>
 #include <linux/ctype.h>
 #include <asm/types.h>
 #include <asm/io.h>

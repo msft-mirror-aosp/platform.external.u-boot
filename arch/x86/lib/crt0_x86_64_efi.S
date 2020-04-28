@@ -18,6 +18,9 @@ _start:
 	pushq %rcx
 	pushq %rdx
 
+	mov %rcx, %r8
+	mov %rdx, %r9
+
 	lea image_base(%rip), %rcx
 	lea _DYNAMIC(%rip), %rdx
 

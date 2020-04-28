@@ -8,7 +8,6 @@
  */
 #include <common.h>
 #include <command.h>
-#include <env.h>
 #include <cbfs.h>
 
 static int do_cbfs_init(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -29,7 +28,7 @@ static int do_cbfs_init(cmd_tbl_t *cmdtp, int flag, int argc,
 		}
 	}
 	file_cbfs_init(end_of_rom);
-	if (cbfs_get_result() != CBFS_SUCCESS) {
+	if (file_cbfs_result != CBFS_SUCCESS) {
 		printf("%s.\n", file_cbfs_error());
 		return 1;
 	}
@@ -67,7 +66,7 @@ static int do_cbfs_fsload(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	file = file_cbfs_find(argv[2]);
 	if (!file) {
-		if (cbfs_get_result() == CBFS_FILE_NOT_FOUND)
+		if (file_cbfs_result == CBFS_FILE_NOT_FOUND)
 			printf("%s: %s\n", file_cbfs_error(), argv[2]);
 		else
 			printf("%s.\n", file_cbfs_error());
@@ -113,20 +112,11 @@ static int do_cbfs_ls(cmd_tbl_t *cmdtp, int flag, int argc,
 		printf(" %8d", file_cbfs_size(file));
 
 		switch (type) {
-		case CBFS_TYPE_BOOTBLOCK:
-			type_name = "bootblock";
-			break;
-		case CBFS_TYPE_CBFSHEADER:
-			type_name = "cbfs header";
-			break;
 		case CBFS_TYPE_STAGE:
 			type_name = "stage";
 			break;
 		case CBFS_TYPE_PAYLOAD:
 			type_name = "payload";
-			break;
-		case CBFS_TYPE_FIT:
-			type_name = "fit";
 			break;
 		case CBFS_TYPE_OPTIONROM:
 			type_name = "option rom";
@@ -146,31 +136,10 @@ static int do_cbfs_ls(cmd_tbl_t *cmdtp, int flag, int argc,
 		case CBFS_TYPE_MICROCODE:
 			type_name = "microcode";
 			break;
-		case CBFS_TYPE_FSP:
-			type_name = "fsp";
-			break;
-		case CBFS_TYPE_MRC:
-			type_name = "mrc";
-			break;
-		case CBFS_TYPE_MMA:
-			type_name = "mma";
-			break;
-		case CBFS_TYPE_EFI:
-			type_name = "efi";
-			break;
-		case CBFS_TYPE_STRUCT:
-			type_name = "struct";
-			break;
-		case CBFS_TYPE_CMOS_DEFAULT:
+		case CBFS_COMPONENT_CMOS_DEFAULT:
 			type_name = "cmos default";
 			break;
-		case CBFS_TYPE_SPD:
-			type_name = "spd";
-			break;
-		case CBFS_TYPE_MRC_CACHE:
-			type_name = "mrc cache";
-			break;
-		case CBFS_TYPE_CMOS_LAYOUT:
+		case CBFS_COMPONENT_CMOS_LAYOUT:
 			type_name = "cmos layout";
 			break;
 		case -1:

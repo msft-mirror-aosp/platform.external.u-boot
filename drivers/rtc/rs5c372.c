@@ -24,6 +24,7 @@
 #include <rtc.h>
 #include <i2c.h>
 
+#if defined(CONFIG_CMD_DATE)
 /*
  * Reads are always done starting with register 15, which requires some
  * jumping-through-hoops to access the data correctly.
@@ -254,3 +255,5 @@ rtc_reset (void)
 	if (!setup_done)
 		rs5c372_enable();
 }
+
+#endif

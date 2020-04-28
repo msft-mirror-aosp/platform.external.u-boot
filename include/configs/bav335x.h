@@ -31,6 +31,12 @@
 #define V_OSCK				24000000  /* Clock output from T2 */
 #define V_SCLK				(V_OSCK)
 
+/* Custom script for NOR */
+#define CONFIG_SYS_LDSCRIPT		"board/birdland/bav335x/u-boot.lds"
+
+/* Always 128 KiB env size */
+#define CONFIG_ENV_SIZE			(128 << 10)
+
 #ifdef CONFIG_NAND
 #define NANDARGS \
 	"mtdids=" CONFIG_MTDIDS_DEFAULT "\0" \
@@ -381,6 +387,7 @@ DEFAULT_LINUX_BOOT_ENV \
  * add mass storage support and for gadget we add both RNDIS ethernet
  * and DFU.
  */
+#define CONFIG_USB_MUSB_DISABLE_BULK_COMBINE_SPLIT
 #define CONFIG_AM335X_USB0
 #define CONFIG_AM335X_USB0_MODE	MUSB_PERIPHERAL
 #define CONFIG_AM335X_USB1
@@ -443,8 +450,10 @@ DEFAULT_LINUX_BOOT_ENV \
  */
 #if defined(CONFIG_SPI_BOOT)
 /* SPL related */
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x20000
 
 #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
 #define CONFIG_ENV_SECT_SIZE		(4 << 10) /* 4 KB sectors */
 #define CONFIG_ENV_OFFSET		(768 << 10) /* 768 KiB in */
 #define CONFIG_ENV_OFFSET_REDUND	(896 << 10) /* 896 KiB in */
@@ -457,6 +466,7 @@ DEFAULT_LINUX_BOOT_ENV \
 #endif
 
 /* SPI flash. */
+#define CONFIG_SF_DEFAULT_SPEED		24000000
 
 /* Network. */
 #define CONFIG_PHY_SMSC
@@ -474,6 +484,11 @@ DEFAULT_LINUX_BOOT_ENV \
  * 0x4C0000 - 0xFFFFFF : Userland (11 MiB + 256 KiB)
  */
 #if defined(CONFIG_NOR)
+#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE
+#define CONFIG_SYS_FLASH_PROTECTION
+#define CONFIG_SYS_FLASH_CFI
+#define CONFIG_FLASH_CFI_DRIVER
+#define CONFIG_FLASH_CFI_MTD
 #define CONFIG_SYS_MAX_FLASH_SECT	128
 #define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_SYS_FLASH_BASE		(0x08000000)

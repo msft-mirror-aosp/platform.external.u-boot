@@ -10,6 +10,7 @@
 #ifndef __CONFIG_PENGWYN_H
 #define __CONFIG_PENGWYN_H
 
+#define CONFIG_SERIAL1
 
 #include <configs/ti_am335x_common.h>
 
@@ -157,6 +158,7 @@
  * board schematic and physical port wired to each.  Then for host we
  * add mass storage support.
  */
+#define CONFIG_USB_MUSB_DISABLE_BULK_COMBINE_SPLIT
 #define CONFIG_AM335X_USB0
 #define CONFIG_AM335X_USB0_MODE	MUSB_PERIPHERAL
 #define CONFIG_AM335X_USB1

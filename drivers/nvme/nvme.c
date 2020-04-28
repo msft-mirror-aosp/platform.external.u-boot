@@ -73,9 +73,6 @@ static int nvme_setup_prps(struct nvme_dev *dev, u64 *prp2,
 	u64 *prp_pool;
 	int length = total_len;
 	int i, nprps;
-	u32 prps_per_page = (page_size >> 3) - 1;
-	u32 num_pages;
-
 	length -= (page_size - offset);
 
 	if (length <= 0) {
@@ -92,20 +89,15 @@ static int nvme_setup_prps(struct nvme_dev *dev, u64 *prp2,
 	}
 
 	nprps = DIV_ROUND_UP(length, page_size);
-	num_pages = DIV_ROUND_UP(nprps, prps_per_page);
 
 	if (nprps > dev->prp_entry_num) {
 		free(dev->prp_pool);
-		/*
-		 * Always increase in increments of pages.  It doesn't waste
-		 * much memory and reduces the number of allocations.
-		 */
-		dev->prp_pool = memalign(page_size, num_pages * page_size);
+		dev->prp_pool = malloc(nprps << 3);
 		if (!dev->prp_pool) {
 			printf("Error: malloc prp_pool fail\n");
 			return -ENOMEM;
 		}
-		dev->prp_entry_num = prps_per_page * num_pages;
+		dev->prp_entry_num = nprps;
 	}
 
 	prp_pool = dev->prp_pool;
@@ -585,7 +577,7 @@ static int nvme_get_info_from_identify(struct nvme_dev *dev)
 	int ret;
 	int shift = NVME_CAP_MPSMIN(dev->cap) + 12;
 
-	ret = nvme_identify(dev, 0, 1, (dma_addr_t)(long)ctrl);
+	ret = nvme_identify(dev, 0, 1, (dma_addr_t)ctrl);
 	if (ret)
 		return -EIO;
 
@@ -654,7 +646,7 @@ static int nvme_blk_probe(struct udevice *udev)
 	ns->dev = ndev;
 	/* extract the namespace id from the block device name */
 	ns->ns_id = trailing_strtol(udev->name) + 1;
-	if (nvme_identify(ndev, ns->ns_id, 0, (dma_addr_t)(long)id))
+	if (nvme_identify(ndev, ns->ns_id, 0, (dma_addr_t)id))
 		return -EIO;
 
 	flbas = id->flbas & NVME_NS_FLBAS_LBA_MASK;
@@ -672,6 +664,7 @@ static int nvme_blk_probe(struct udevice *udev)
 	sprintf(desc->vendor, "0x%.4x", pplat->vendor);
 	memcpy(desc->product, ndev->serial, sizeof(ndev->serial));
 	memcpy(desc->revision, ndev->firmware_rev, sizeof(ndev->firmware_rev));
+	part_init(desc);
 
 	return 0;
 }
@@ -796,6 +789,14 @@ static int nvme_probe(struct udevice *udev)
 	}
 	memset(ndev->queues, 0, NVME_Q_NUM * sizeof(struct nvme_queue *));
 
+	ndev->prp_pool = malloc(MAX_PRP_POOL);
+	if (!ndev->prp_pool) {
+		ret = -ENOMEM;
+		printf("Error: %s: Out of memory!\n", udev->name);
+		goto free_nvme;
+	}
+	ndev->prp_entry_num = MAX_PRP_POOL >> 3;
+
 	ndev->cap = nvme_readq(&ndev->bar->cap);
 	ndev->q_depth = min_t(int, NVME_CAP_MQES(ndev->cap) + 1, NVME_Q_DEPTH);
 	ndev->db_stride = 1 << NVME_CAP_STRIDE(ndev->cap);
@@ -804,15 +805,6 @@ static int nvme_probe(struct udevice *udev)
 	ret = nvme_configure_admin_queue(ndev);
 	if (ret)
 		goto free_queue;
-
-	/* Allocate after the page size is known */
-	ndev->prp_pool = memalign(ndev->page_size, MAX_PRP_POOL);
-	if (!ndev->prp_pool) {
-		ret = -ENOMEM;
-		printf("Error: %s: Out of memory!\n", udev->name);
-		goto free_nvme;
-	}
-	ndev->prp_entry_num = MAX_PRP_POOL >> 3;
 
 	ret = nvme_setup_io_queues(ndev);
 	if (ret)

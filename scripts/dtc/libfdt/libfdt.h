@@ -139,10 +139,6 @@
 
 #define FDT_ERR_MAX		17
 
-/* constants */
-#define FDT_MAX_PHANDLE 0xfffffffe
-	/* Valid values for phandles range from 1 to 2^32-2. */
-
 /**********************************************************************/
 /* Low-level functions (you probably don't need these)                */
 /**********************************************************************/
@@ -316,21 +312,6 @@ const char *fdt_string(const void *fdt, int stroffset);
  *      -1, if an error occurred
  */
 uint32_t fdt_get_max_phandle(const void *fdt);
-
-/**
- * fdt_generate_phandle - return a new, unused phandle for a device tree blob
- * @fdt: pointer to the device tree blob
- * @phandle: return location for the new phandle
- *
- * Walks the device tree blob and looks for the highest phandle value. On
- * success, the new, unused phandle value (one higher than the previously
- * highest phandle value in the device tree blob) will be returned in the
- * @phandle parameter.
- *
- * Returns:
- *   0 on success or a negative error-code on failure
- */
-int fdt_generate_phandle(const void *fdt, uint32_t *phandle);
 
 /**
  * fdt_num_mem_rsv - retrieve the number of memory reserve map entries
@@ -1332,13 +1313,10 @@ static inline int fdt_property_u64(void *fdt, const char *name, uint64_t val)
 	fdt64_t tmp = cpu_to_fdt64(val);
 	return fdt_property(fdt, name, &tmp, sizeof(tmp));
 }
-
-#ifndef SWIG /* Not available in Python */
 static inline int fdt_property_cell(void *fdt, const char *name, uint32_t val)
 {
 	return fdt_property_u32(fdt, name, val);
 }
-#endif
 
 /**
  * fdt_property_placeholder - add a new property and return a ptr to its value

@@ -20,6 +20,7 @@
 /*
  * Configuration of the external SDRAM memory
  */
+#define CONFIG_NR_DRAM_BANKS		1
 
 #define CONFIG_SYS_MAX_FLASH_SECT	8
 #define CONFIG_SYS_MAX_FLASH_BANKS	1
@@ -30,8 +31,10 @@
 
 #define CONFIG_DW_GMAC_DEFAULT_DMA_PBL	(8)
 #define CONFIG_DW_ALTDESCRIPTOR
+#define CONFIG_MII
 #define CONFIG_PHY_SMSC
 
+#define CONFIG_SYS_CLK_FREQ		200000000 /* 200 MHz */
 #define CONFIG_SYS_HZ_CLOCK		1000000	/* Timer is clocked at 1MHz */
 
 #define CONFIG_CMDLINE_TAG
@@ -43,30 +46,26 @@
 
 #define CONFIG_SYS_MALLOC_LEN		(1 * 1024 * 1024)
 
-#define BOOT_TARGET_DEVICES(func) \
-	func(MMC, mmc, 0)
+#define CONFIG_BOOTCOMMAND						\
+	"run bootcmd_romfs"
 
-#include <config_distro_bootcmd.h>
-#define CONFIG_EXTRA_ENV_SETTINGS				\
-			"kernel_addr_r=0xC0008000\0"		\
-			"fdtfile=stm32f746-disco.dtb\0"	\
-			"fdt_addr_r=0xC0500000\0"		\
-			"scriptaddr=0xC0008000\0"		\
-			"pxefile_addr_r=0xC0008000\0" \
-			"fdt_high=0xffffffffffffffff\0"		\
-			"initrd_high=0xffffffffffffffff\0"	\
-			"ramdisk_addr_r=0xD0900000\0"		\
-			BOOTENV
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	"bootargs_romfs=uclinux.physaddr=0x08180000 root=/dev/mtdblock0\0" \
+	"bootcmd_romfs=setenv bootargs ${bootargs} ${bootargs_romfs};" \
+	"bootm 0x08044000 - 0x08042000\0"
+
 
 /*
  * Command line configuration.
  */
+#define CONFIG_CMD_CACHE
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_DISPLAY_BOARDINFO
 
 /* For SPL */
 #ifdef CONFIG_SUPPORT_SPL
 #define CONFIG_SPL_STACK		CONFIG_SYS_INIT_SP_ADDR
+#define CONFIG_SPL_TEXT_BASE		CONFIG_SYS_FLASH_BASE
 #define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
 #define CONFIG_SYS_SPL_LEN		0x00008000
 #define CONFIG_SYS_UBOOT_START		0x080083FD

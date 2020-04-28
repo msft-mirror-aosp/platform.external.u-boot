@@ -9,8 +9,6 @@
 
 
 / {
-	model = "snps,axs103";
-
 	chosen {
 		stdout-path = &uart0;
 	};

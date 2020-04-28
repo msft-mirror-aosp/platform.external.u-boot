@@ -39,8 +39,8 @@ struct uclass_driver *lists_uclass_lookup(enum uclass_id id);
  * each one. The devices will have @parent as their parent.
  *
  * @parent: parent device (root)
- * @pre_reloc_only: If true, bind only drivers with the DM_FLAG_PRE_RELOC flag.
- * If false bind all drivers.
+ * @early_only: If true, bind only drivers with the DM_INIT_F flag. If false
+ * bind all drivers.
  */
 int lists_bind_drivers(struct udevice *parent, bool pre_reloc_only);
 
@@ -53,13 +53,10 @@ int lists_bind_drivers(struct udevice *parent, bool pre_reloc_only);
  * @parent: parent device (root)
  * @node: device tree node to bind
  * @devp: if non-NULL, returns a pointer to the bound device
- * @pre_reloc_only: If true, bind only nodes with special devicetree properties,
- * or drivers with the DM_FLAG_PRE_RELOC flag. If false bind all drivers.
  * @return 0 if device was bound, -EINVAL if the device tree is invalid,
  * other -ve value on error
  */
-int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp,
-		   bool pre_reloc_only);
+int lists_bind_fdt(struct udevice *parent, ofnode node, struct udevice **devp);
 
 /**
  * device_bind_driver() - bind a device to a driver

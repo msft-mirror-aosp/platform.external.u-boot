@@ -11,7 +11,6 @@
 #include <asm/arch/at91_rstc.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/clk.h>
-#include <env.h>
 #include <micrel.h>
 #include <net.h>
 #include <netdev.h>

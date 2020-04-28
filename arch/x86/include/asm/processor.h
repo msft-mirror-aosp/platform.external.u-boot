@@ -43,6 +43,11 @@ enum {
 	FULL_RST	= 1 << 3,	/* full power cycle */
 };
 
+/**
+ * x86_full_reset() - reset everything: perform a full power cycle
+ */
+void x86_full_reset(void);
+
 static inline __attribute__((always_inline)) void cpu_hlt(void)
 {
 	asm("hlt");

@@ -35,7 +35,6 @@ Optional properties:
 - regulator-max-microamp: a maximum allowed Current value
 - regulator-always-on: regulator should never be disabled
 - regulator-boot-on: enabled by bootloader/firmware
-- regulator-ramp-delay: ramp delay for regulator (in uV/us)
 
 Note
 The "regulator-name" constraint is used for setting the device's uclass
@@ -61,5 +60,4 @@ ldo0 {
 	regulator-max-microamp = <100000>;
 	regulator-always-on;
 	regulator-boot-on;
-	regulator-ramp-delay = <12000>;
 };

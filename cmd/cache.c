@@ -22,7 +22,7 @@ void __weak invalidate_icache_all(void)
 static int do_icache(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	switch (argc) {
-	case 2:			/* on / off / flush */
+	case 2:			/* on / off	*/
 		switch (parse_argv(argv[1])) {
 		case 0:
 			icache_disable();
@@ -33,8 +33,6 @@ static int do_icache(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		case 2:
 			invalidate_icache_all();
 			break;
-		default:
-			return CMD_RET_USAGE;
 		}
 		break;
 	case 1:			/* get status */
@@ -56,7 +54,7 @@ void __weak flush_dcache_all(void)
 static int do_dcache(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	switch (argc) {
-	case 2:			/* on / off / flush */
+	case 2:			/* on / off */
 		switch (parse_argv(argv[1])) {
 		case 0:
 			dcache_disable();
@@ -67,8 +65,6 @@ static int do_dcache(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		case 2:
 			flush_dcache_all();
 			break;
-		default:
-			return CMD_RET_USAGE;
 		}
 		break;
 	case 1:			/* get status */

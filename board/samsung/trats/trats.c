@@ -7,7 +7,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <lcd.h>
 #include <asm/io.h>
 #include <asm/gpio.h>

@@ -60,5 +60,4 @@ U_BOOT_DRIVER(simple_bus_drv) = {
 	.name	= "generic_simple_bus",
 	.id	= UCLASS_SIMPLE_BUS,
 	.of_match = generic_simple_bus_ids,
-	.flags	= DM_FLAG_PRE_RELOC,
 };

@@ -10,7 +10,8 @@ void udelay(unsigned long usec);
 
 static inline void mdelay(unsigned long msec)
 {
-	udelay(1000 * msec);
+	while (msec--)
+		udelay(1000);
 }
 
 static inline void ndelay(unsigned long nsec)

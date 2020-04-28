@@ -1,4 +1,4 @@
-if TARGET_KMETER1
+if TARGET_KM8360
 
 config SYS_BOARD
 	default "km83xx"
@@ -7,53 +7,7 @@ config SYS_VENDOR
 	default "keymile"
 
 config SYS_CONFIG_NAME
-	default "kmeter1"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC8360
-	imply CMD_CRAMFS
-	imply CMD_DIAG
-	imply FS_CRAMFS
-
-endif
-
-if TARGET_KMCOGE5NE
-
-config SYS_BOARD
-	default "km83xx"
-
-config SYS_VENDOR
-	default "keymile"
-
-config SYS_CONFIG_NAME
-	default "kmcoge5ne"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC8360
-	imply CMD_CRAMFS
-	imply CMD_DIAG
-	imply FS_CRAMFS
-
-endif
-
-if TARGET_KMTEGR1
-
-config SYS_BOARD
-	default "km83xx"
-
-config SYS_VENDOR
-	default "keymile"
-
-config SYS_CONFIG_NAME
-	default "kmtegr1"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC8309
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
+	default "km8360"
 
 endif
 
@@ -68,12 +22,6 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "suvd3"
 
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC832X
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
-
 endif
 
 if TARGET_TUXX1
@@ -86,87 +34,5 @@ config SYS_VENDOR
 
 config SYS_CONFIG_NAME
 	default "tuxx1"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC832X
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
-
-endif
-
-if TARGET_KMSUPX5
-
-config SYS_BOARD
-	default "km83xx"
-
-config SYS_VENDOR
-	default "keymile"
-
-config SYS_CONFIG_NAME
-	default "kmsupx5"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC832X
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
-
-endif
-
-if TARGET_TUGE1
-
-config SYS_BOARD
-	default "km83xx"
-
-config SYS_VENDOR
-	default "keymile"
-
-config SYS_CONFIG_NAME
-	default "tuge1"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC832X
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
-
-endif
-
-if TARGET_KMOPTI2
-
-config SYS_BOARD
-	default "km83xx"
-
-config SYS_VENDOR
-	default "keymile"
-
-config SYS_CONFIG_NAME
-	default "kmopti2"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC832X
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
-
-endif
-
-if TARGET_KMTEPR2
-
-config SYS_BOARD
-	default "km83xx"
-
-config SYS_VENDOR
-	default "keymile"
-
-config SYS_CONFIG_NAME
-	default "kmtepr2"
-
-config BOARD_SPECIFIC_OPTIONS # dummy
-	def_bool y
-	select ARCH_MPC832X
-	imply CMD_CRAMFS
-	imply FS_CRAMFS
 
 endif

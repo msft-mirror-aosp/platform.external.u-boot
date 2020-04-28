@@ -21,12 +21,20 @@
 #define CONFIG_SYS_FSL_ESDHC_ADDR      0
 
 #define CONFIG_FEC_MXC
+#define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_XCV_TYPE		RGMII
 #define CONFIG_ETHPRIME			"FEC"
 #define CONFIG_FEC_MXC_PHYADDR		1
 
 #define CONFIG_PHY_ATHEROS
+
+#ifdef CONFIG_CMD_SF
+#define CONFIG_SF_DEFAULT_BUS		0
+#define CONFIG_SF_DEFAULT_CS		0
+#define CONFIG_SF_DEFAULT_SPEED		20000000
+#define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
+#endif
 
 #ifdef CONFIG_SUPPORT_EMMC_BOOT
 #define EMMC_ENV \
@@ -62,7 +70,6 @@
 	"dfu_alt_info=spl raw 0x400\0" \
 	"fdt_high=0xffffffff\0"	  \
 	"initrd_high=0xffffffff\0" \
-	"splashimage=" __stringify(CONFIG_LOADADDR) "\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=1\0" \
 	"finduuid=part uuid mmc ${mmcdev}:2 uuid\0" \
@@ -167,6 +174,7 @@
 #define CONFIG_SYS_MEMTEST_SCRATCH     0x10800000
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS           1
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 
 #define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
@@ -186,6 +194,7 @@
 #endif
 
 /* Framebuffer */
+#define CONFIG_VIDEO_IPUV3
 #define CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_SPLASH_SCREEN_ALIGN

@@ -6,7 +6,6 @@
 #include <common.h>
 #include <command.h>
 #include <ansi.h>
-#include <env.h>
 #include <menu.h>
 #include <watchdog.h>
 #include <malloc.h>
@@ -254,7 +253,6 @@ static struct bootmenu_data *bootmenu_create(int delay)
 
 	int len;
 	char *sep;
-	char *default_str;
 	struct bootmenu_entry *entry;
 
 	menu = malloc(sizeof(struct bootmenu_data));
@@ -264,10 +262,6 @@ static struct bootmenu_data *bootmenu_create(int delay)
 	menu->delay = delay;
 	menu->active = 0;
 	menu->first = NULL;
-
-	default_str = env_get("bootmenu_default");
-	if (default_str)
-		menu->active = (int)simple_strtol(default_str, NULL, 10);
 
 	while ((option = bootmenu_getoption(i))) {
 		sep = strchr(option, '=');
@@ -352,12 +346,6 @@ static struct bootmenu_data *bootmenu_create(int delay)
 	}
 
 	menu->count = i;
-
-	if ((menu->active >= menu->count)||(menu->active < 0)) { //ensure active menuitem is inside menu
-		printf("active menuitem (%d) is outside menu (0..%d)\n",menu->active,menu->count-1);
-		menu->active=0;
-	}
-
 	return menu;
 
 cleanup:
@@ -473,7 +461,7 @@ void menu_display_statusline(struct menu *m)
 	puts(ANSI_CLEAR_LINE);
 }
 
-#ifdef CONFIG_AUTOBOOT_MENU_SHOW
+#ifdef CONFIG_MENU_SHOW
 int menu_show(int bootdelay)
 {
 	bootmenu_show(bootdelay);

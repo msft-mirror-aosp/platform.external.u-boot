@@ -8,7 +8,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <ioports.h>
 #include <command.h>
 #include <malloc.h>

@@ -7,6 +7,7 @@
 #include <common.h>
 #include <console.h>
 #include <div64.h>
+#include <inttypes.h>
 #include <version.h>
 #include <linux/ctype.h>
 #include <asm/io.h>
@@ -23,9 +24,7 @@ char *display_options_get_banner_priv(bool newlines, const char *build_tag,
 				build_tag);
 	if (len > size - 3)
 		len = size - 3;
-	if (len < 0)
-		len = 0;
-	snprintf(buf + len, size - len, "\n\n");
+	strcpy(buf + len, "\n\n");
 
 	return buf;
 }
@@ -66,7 +65,7 @@ void print_freq(uint64_t freq, const char *s)
 	}
 
 	if (!c) {
-		printf("%llu Hz%s", freq, s);
+		printf("%" PRIu64 " Hz%s", freq, s);
 		return;
 	}
 
@@ -106,7 +105,7 @@ void print_size(uint64_t size, const char *s)
 	}
 
 	if (!c) {
-		printf("%llu Bytes%s", size, s);
+		printf("%" PRIu64 " Bytes%s", size, s);
 		return;
 	}
 
@@ -176,9 +175,7 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 				x = lb.us[i] = *(volatile uint16_t *)data;
 			else
 				x = lb.uc[i] = *(volatile uint8_t *)data;
-#if defined(CONFIG_SPL_BUILD)
-			printf(" %x", (uint)x);
-#elif defined(CONFIG_SYS_SUPPORT_64BIT_DATA)
+#ifdef CONFIG_SYS_SUPPORT_64BIT_DATA
 			printf(" %0*llx", width * 2, (long long)x);
 #else
 			printf(" %0*x", width * 2, x);

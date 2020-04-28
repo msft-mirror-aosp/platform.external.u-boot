@@ -10,4 +10,6 @@
 #define CONFIG_NEEDS_MANUAL_RELOC
 #endif
 
+#define CONFIG_NR_DRAM_BANKS	1
+
 #endif

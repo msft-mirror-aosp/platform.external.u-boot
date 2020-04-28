@@ -53,6 +53,16 @@ int timer_init(void)
 /*
  * timer without interrupts
  */
+ulong get_timer(ulong base)
+{
+	return get_timer_masked() - base;
+}
+
+void __udelay(unsigned long usec)
+{
+	udelay_masked(usec);
+}
+
 ulong get_timer_raw(void)
 {
 	at91_tc_t *tc = (at91_tc_t *) ATMEL_BASE_TC;
@@ -72,17 +82,12 @@ ulong get_timer_raw(void)
 	return gd->arch.tbl;
 }
 
-static ulong get_timer_masked(void)
+ulong get_timer_masked(void)
 {
 	return get_timer_raw()/TIMER_LOAD_VAL;
 }
 
-ulong get_timer(ulong base)
-{
-	return get_timer_masked() - base;
-}
-
-void __udelay(unsigned long usec)
+void udelay_masked(unsigned long usec)
 {
 	u32 tmo;
 	u32 endtime;

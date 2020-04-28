@@ -14,7 +14,9 @@
  * High Level Configuration Options
  * (easy to change)
  */
+#define CONFIG_SHOW_BOOT_PROGRESS
 #define CONFIG_PHYSMEM
+#define CONFIG_NR_DRAM_BANKS		8
 
 #define CONFIG_LMB
 
@@ -27,6 +29,10 @@
 #define CONFIG_LBA48
 #define CONFIG_SYS_64BIT_LBA
 
+#define CONFIG_SYS_SCSI_MAX_SCSI_ID	2
+#define CONFIG_SYS_SCSI_MAX_LUN		1
+#define CONFIG_SYS_SCSI_MAX_DEVICE	(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
+					 CONFIG_SYS_SCSI_MAX_LUN)
 #endif
 
 /* Generic TPM interfaced through LPC bus */
@@ -35,12 +41,15 @@
 /*-----------------------------------------------------------------------
  * Real Time Clock Configuration
  */
+#define CONFIG_RTC_MC146818
 #define CONFIG_SYS_ISA_IO_BASE_ADDRESS	0
 #define CONFIG_SYS_ISA_IO      CONFIG_SYS_ISA_IO_BASE_ADDRESS
 
 /*-----------------------------------------------------------------------
  * Serial Configuration
  */
+#define CONFIG_SYS_BAUDRATE_TABLE	{300, 600, 1200, 2400, 4800, \
+					 9600, 19200, 38400, 115200}
 #define CONFIG_SYS_NS16550_PORT_MAPPED
 
 /*-----------------------------------------------------------------------
@@ -99,46 +108,36 @@
 #define CONFIG_BOOTFILE		"bzImage"
 #define CONFIG_LOADADDR		0x1000000
 #define CONFIG_RAMDISK_ADDR	0x4000000
-#if defined(CONFIG_GENERATE_ACPI_TABLE) || defined(CONFIG_EFI_STUB)
+#ifdef CONFIG_GENERATE_ACPI_TABLE
 #define CONFIG_OTHBOOTARGS	"othbootargs=\0"
 #else
 #define CONFIG_OTHBOOTARGS	"othbootargs=acpi=off\0"
 #endif
 
-#if defined(CONFIG_DISTRO_DEFAULTS)
-#define DISTRO_BOOTENV		BOOTENV
-#else
-#define DISTRO_BOOTENV
-#endif
-
 #define CONFIG_EXTRA_ENV_SETTINGS			\
-	DISTRO_BOOTENV					\
 	CONFIG_STD_DEVICES_SETTINGS			\
 	"pciconfighost=1\0"				\
 	"netdev=eth0\0"					\
 	"consoledev=ttyS0\0"				\
 	CONFIG_OTHBOOTARGS				\
-	"scriptaddr=0x7000000\0"			\
-	"kernel_addr_r=0x1000000\0"			\
-	"ramdisk_addr_r=0x4000000\0"			\
+	"ramdiskaddr=0x4000000\0"			\
 	"ramdiskfile=initramfs.gz\0"
-
 
 #define CONFIG_RAMBOOTCOMMAND				\
 	"setenv bootargs root=/dev/ram rw "		\
 	"ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:$netdev:off " \
 	"console=$consoledev,$baudrate $othbootargs;"	\
-	"tftpboot $kernel_addr_r $bootfile;"		\
-	"tftpboot $ramdisk_addr_r $ramdiskfile;"	\
-	"zboot $kernel_addr_r 0 $ramdisk_addr_r $filesize"
+	"tftpboot $loadaddr $bootfile;"			\
+	"tftpboot $ramdiskaddr $ramdiskfile;"		\
+	"zboot $loadaddr 0 $ramdiskaddr $filesize"
 
 #define CONFIG_NFSBOOTCOMMAND				\
 	"setenv bootargs root=/dev/nfs rw "		\
 	"nfsroot=$serverip:$rootpath "			\
 	"ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:$netdev:off " \
 	"console=$consoledev,$baudrate $othbootargs;"	\
-	"tftpboot $kernel_addr_r $bootfile;"		\
-	"zboot $kernel_addr_r"
+	"tftpboot $loadaddr $bootfile;"			\
+	"zboot $loadaddr"
 
 
 #endif	/* __CONFIG_H */

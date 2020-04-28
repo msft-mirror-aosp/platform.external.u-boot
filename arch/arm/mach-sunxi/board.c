@@ -52,7 +52,7 @@ static struct mm_region sunxi_mem_map[] = {
 		/* RAM */
 		.virt = 0x40000000UL,
 		.phys = 0x40000000UL,
-		.size = 0xC0000000UL,
+		.size = 0x80000000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
 	}, {
@@ -107,10 +107,6 @@ static int gpio_init(void)
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(8), SUN50I_GPB_UART0);
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(9), SUN50I_GPB_UART0);
 	sunxi_gpio_set_pull(SUNXI_GPB(9), SUNXI_GPIO_PULL_UP);
-#elif CONFIG_CONS_INDEX == 1 && defined(CONFIG_MACH_SUN50I_H6)
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(0), SUN50I_H6_GPH_UART0);
-	sunxi_gpio_set_cfgpin(SUNXI_GPH(1), SUN50I_H6_GPH_UART0);
-	sunxi_gpio_set_pull(SUNXI_GPH(1), SUNXI_GPIO_PULL_UP);
 #elif CONFIG_CONS_INDEX == 1 && defined(CONFIG_MACH_SUN8I_A83T)
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(9), SUN8I_A83T_GPB_UART0);
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(10), SUN8I_A83T_GPB_UART0);
@@ -240,12 +236,10 @@ uint32_t sunxi_get_boot_device(void)
 	boot_source = readb(SPL_ADDR + 0x28);
 	switch (boot_source) {
 	case SUNXI_BOOTED_FROM_MMC0:
-	case SUNXI_BOOTED_FROM_MMC0_HIGH:
 		return BOOT_DEVICE_MMC1;
 	case SUNXI_BOOTED_FROM_NAND:
 		return BOOT_DEVICE_NAND;
 	case SUNXI_BOOTED_FROM_MMC2:
-	case SUNXI_BOOTED_FROM_MMC2_HIGH:
 		return BOOT_DEVICE_MMC2;
 	case SUNXI_BOOTED_FROM_SPI:
 		return BOOT_DEVICE_SPI;
@@ -288,15 +282,10 @@ void reset_cpu(ulong addr)
 		/* sun5i sometimes gets stuck without this */
 		writel(WDT_MODE_RESET_EN | WDT_MODE_EN, &wdog->mode);
 	}
-#elif defined(CONFIG_SUNXI_GEN_SUN6I) || defined(CONFIG_MACH_SUN50I_H6)
-#if defined(CONFIG_MACH_SUN50I_H6)
-	/* WDOG is broken for some H6 rev. use the R_WDOG instead */
+#elif defined(CONFIG_SUNXI_GEN_SUN6I)
 	static const struct sunxi_wdog *wdog =
-		(struct sunxi_wdog *)SUNXI_R_WDOG_BASE;
-#else
-	static const struct sunxi_wdog *wdog =
-		((struct sunxi_timer_reg *)SUNXI_TIMER_BASE)->wdog;
-#endif
+		 ((struct sunxi_timer_reg *)SUNXI_TIMER_BASE)->wdog;
+
 	/* Set the watchdog for its shortest interval (.5s) and wait */
 	writel(WDT_CFG_RESET, &wdog->cfg);
 	writel(WDT_MODE_EN, &wdog->mode);
@@ -305,7 +294,7 @@ void reset_cpu(ulong addr)
 #endif
 }
 
-#if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF) && !defined(CONFIG_ARM64)
+#if !defined(CONFIG_SYS_DCACHE_OFF) && !defined(CONFIG_ARM64)
 void enable_caches(void)
 {
 	/* Enable D-cache. I-cache is already enabled in start.S */

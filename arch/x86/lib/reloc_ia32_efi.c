@@ -10,8 +10,10 @@
 #include <common.h>
 #include <efi.h>
 #include <elf.h>
+#include <asm/elf.h>
 
-efi_status_t EFIAPI _relocate(long ldbase, Elf32_Dyn *dyn)
+efi_status_t _relocate(long ldbase, Elf32_Dyn *dyn, efi_handle_t image,
+		       struct efi_system_table *systab)
 {
 	long relsz = 0, relent = 0;
 	Elf32_Rel *rel = 0;

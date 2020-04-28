@@ -11,23 +11,18 @@
 #include <phy.h>
 #include <syscon.h>
 #include <asm/io.h>
-#include <asm/arch-rockchip/periph.h>
-#include <asm/arch-rockchip/clock.h>
-#include <asm/arch-rockchip/hardware.h>
-#include <asm/arch-rockchip/grf_rk322x.h>
-#include <asm/arch-rockchip/grf_rk3288.h>
-#include <asm/arch-rockchip/grf_rk3328.h>
-#include <asm/arch-rockchip/grf_rk3368.h>
-#include <asm/arch-rockchip/grf_rk3399.h>
-#include <asm/arch-rockchip/grf_rv1108.h>
+#include <asm/arch/periph.h>
+#include <asm/arch/clock.h>
+#include <asm/arch/hardware.h>
+#include <asm/arch/grf_rk322x.h>
+#include <asm/arch/grf_rk3288.h>
+#include <asm/arch/grf_rk3328.h>
+#include <asm/arch/grf_rk3368.h>
+#include <asm/arch/grf_rk3399.h>
+#include <asm/arch/grf_rv1108.h>
 #include <dm/pinctrl.h>
 #include <dt-bindings/clock/rk3288-cru.h>
 #include "designware.h"
-
-DECLARE_GLOBAL_DATA_PTR;
-#define DELAY_ENABLE(soc, tx, rx) \
-	(((tx) ? soc##_TXCLK_DLY_ENA_GMAC_ENABLE : soc##_TXCLK_DLY_ENA_GMAC_DISABLE) | \
-	((rx) ? soc##_RXCLK_DLY_ENA_GMAC_ENABLE : soc##_RXCLK_DLY_ENA_GMAC_DISABLE))
 
 /*
  * Platform data for the gmac
@@ -291,7 +286,8 @@ static void rk3228_gmac_set_to_rgmii(struct gmac_rockchip_platdata *pdata)
 		     RK3228_RXCLK_DLY_ENA_GMAC_MASK |
 		     RK3228_TXCLK_DLY_ENA_GMAC_MASK,
 		     RK3228_GMAC_PHY_INTF_SEL_RGMII |
-		     DELAY_ENABLE(RK3228, pdata->tx_delay, pdata->rx_delay));
+		     RK3228_RXCLK_DLY_ENA_GMAC_ENABLE |
+		     RK3228_TXCLK_DLY_ENA_GMAC_ENABLE);
 
 	rk_clrsetreg(&grf->mac_con[0],
 		     RK3228_CLK_RX_DL_CFG_GMAC_MASK |
@@ -314,7 +310,8 @@ static void rk3288_gmac_set_to_rgmii(struct gmac_rockchip_platdata *pdata)
 		     RK3288_TXCLK_DLY_ENA_GMAC_MASK |
 		     RK3288_CLK_RX_DL_CFG_GMAC_MASK |
 		     RK3288_CLK_TX_DL_CFG_GMAC_MASK,
-		     DELAY_ENABLE(RK3288, pdata->rx_delay, pdata->tx_delay) |
+		     RK3288_RXCLK_DLY_ENA_GMAC_ENABLE |
+		     RK3288_TXCLK_DLY_ENA_GMAC_ENABLE |
 		     pdata->rx_delay << RK3288_CLK_RX_DL_CFG_GMAC_SHIFT |
 		     pdata->tx_delay << RK3288_CLK_TX_DL_CFG_GMAC_SHIFT);
 }
@@ -353,7 +350,8 @@ static void rk3328_gmac_set_to_rgmii(struct gmac_rockchip_platdata *pdata)
 		     RK3328_RXCLK_DLY_ENA_GMAC_MASK |
 		     RK3328_TXCLK_DLY_ENA_GMAC_MASK,
 		     RK3328_GMAC_PHY_INTF_SEL_RGMII |
-		     DELAY_ENABLE(RK3328, pdata->tx_delay, pdata->rx_delay));
+		     RK3328_RXCLK_DLY_ENA_GMAC_MASK |
+		     RK3328_TXCLK_DLY_ENA_GMAC_ENABLE);
 
 	rk_clrsetreg(&grf->mac_con[0],
 		     RK3328_CLK_RX_DL_CFG_GMAC_MASK |
@@ -394,7 +392,8 @@ static void rk3368_gmac_set_to_rgmii(struct gmac_rockchip_platdata *pdata)
 		     RK3368_TXCLK_DLY_ENA_GMAC_MASK |
 		     RK3368_CLK_RX_DL_CFG_GMAC_MASK |
 		     RK3368_CLK_TX_DL_CFG_GMAC_MASK,
-		     DELAY_ENABLE(RK3368, pdata->tx_delay, pdata->rx_delay) |
+		     RK3368_RXCLK_DLY_ENA_GMAC_ENABLE |
+		     RK3368_TXCLK_DLY_ENA_GMAC_ENABLE |
 		     pdata->rx_delay << RK3368_CLK_RX_DL_CFG_GMAC_SHIFT |
 		     pdata->tx_delay << RK3368_CLK_TX_DL_CFG_GMAC_SHIFT);
 }
@@ -414,7 +413,8 @@ static void rk3399_gmac_set_to_rgmii(struct gmac_rockchip_platdata *pdata)
 		     RK3399_TXCLK_DLY_ENA_GMAC_MASK |
 		     RK3399_CLK_RX_DL_CFG_GMAC_MASK |
 		     RK3399_CLK_TX_DL_CFG_GMAC_MASK,
-		     DELAY_ENABLE(RK3399, pdata->tx_delay, pdata->rx_delay) |
+		     RK3399_RXCLK_DLY_ENA_GMAC_ENABLE |
+		     RK3399_TXCLK_DLY_ENA_GMAC_ENABLE |
 		     pdata->rx_delay << RK3399_CLK_RX_DL_CFG_GMAC_SHIFT |
 		     pdata->tx_delay << RK3399_CLK_TX_DL_CFG_GMAC_SHIFT);
 }
@@ -451,86 +451,40 @@ static int gmac_rockchip_probe(struct udevice *dev)
 
 	switch (eth_pdata->phy_interface) {
 	case PHY_INTERFACE_MODE_RGMII:
-		/* Set to RGMII mode */
-		if (ops->set_to_rgmii)
-			ops->set_to_rgmii(pdata);
-		else
-			return -EPERM;
-
 		/*
 		 * If the gmac clock is from internal pll, need to set and
 		 * check the return value for gmac clock at RGMII mode. If
 		 * the gmac clock is from external source, the clock rate
 		 * is not set, because of it is bypassed.
 		 */
-
 		if (!pdata->clock_input) {
 			rate = clk_set_rate(&clk, 125000000);
 			if (rate != 125000000)
 				return -EINVAL;
 		}
-		break;
 
-	case PHY_INTERFACE_MODE_RGMII_ID:
 		/* Set to RGMII mode */
-		if (ops->set_to_rgmii) {
-			pdata->tx_delay = 0;
-			pdata->rx_delay = 0;
+		if (ops->set_to_rgmii)
 			ops->set_to_rgmii(pdata);
-		} else
+		else
 			return -EPERM;
 
+		break;
+	case PHY_INTERFACE_MODE_RMII:
+		/* The commet is the same as RGMII mode */
 		if (!pdata->clock_input) {
-			rate = clk_set_rate(&clk, 125000000);
-			if (rate != 125000000)
+			rate = clk_set_rate(&clk, 50000000);
+			if (rate != 50000000)
 				return -EINVAL;
 		}
-		break;
 
-	case PHY_INTERFACE_MODE_RMII:
 		/* Set to RMII mode */
 		if (ops->set_to_rmii)
 			ops->set_to_rmii(pdata);
 		else
 			return -EPERM;
 
-		if (!pdata->clock_input) {
-			rate = clk_set_rate(&clk, 50000000);
-			if (rate != 50000000)
-				return -EINVAL;
-		}
 		break;
-
-	case PHY_INTERFACE_MODE_RGMII_RXID:
-		 /* Set to RGMII_RXID mode */
-		if (ops->set_to_rgmii) {
-			pdata->tx_delay = 0;
-			ops->set_to_rgmii(pdata);
-		} else
-			return -EPERM;
-
-		if (!pdata->clock_input) {
-			rate = clk_set_rate(&clk, 125000000);
-			if (rate != 125000000)
-				return -EINVAL;
-		}
-		break;
-
-	case PHY_INTERFACE_MODE_RGMII_TXID:
-		/* Set to RGMII_TXID mode */
-		if (ops->set_to_rgmii) {
-			pdata->rx_delay = 0;
-			ops->set_to_rgmii(pdata);
-		} else
-			return -EPERM;
-
-		if (!pdata->clock_input) {
-			rate = clk_set_rate(&clk, 125000000);
-			if (rate != 125000000)
-				return -EINVAL;
-		}
-		break;
-
 	default:
 		debug("NO interface defined!\n");
 		return -ENXIO;

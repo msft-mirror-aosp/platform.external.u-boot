@@ -17,7 +17,6 @@
 #endif
 
 #include <command.h>
-#include <env.h>
 #include <flash.h>
 #include <net.h>
 #include <net/tftp.h>

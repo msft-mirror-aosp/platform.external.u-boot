@@ -2,7 +2,7 @@ Cadence QSPI controller device tree bindings
 --------------------------------------------
 
 Required properties:
-- compatible		: should be "cdns,qspi-nor"
+- compatible		: should be "cadence,qspi".
 - reg			: 1.Physical base address and size of SPI registers map.
 			  2. Physical base address & size of NOR Flash.
 - clocks		: Clock phandles (see clock bindings for details).

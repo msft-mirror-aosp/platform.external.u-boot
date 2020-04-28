@@ -7,10 +7,8 @@
  */
 
 #include <common.h>
-#include <bloblist.h>
 #include <binman_sym.h>
 #include <dm.h>
-#include <handoff.h>
 #include <spl.h>
 #include <asm/u-boot.h>
 #include <nand.h>
@@ -22,7 +20,6 @@
 #include <linux/compiler.h>
 #include <fdt_support.h>
 #include <bootcount.h>
-#include <wdt.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -37,7 +34,7 @@ DECLARE_GLOBAL_DATA_PTR;
 u32 *boot_params_ptr = NULL;
 
 /* See spl.h for information about this */
-binman_sym_declare(ulong, u_boot_any, image_pos);
+binman_sym_declare(ulong, u_boot_any, pos);
 
 /* Define board data structure */
 static bd_t bdata __attribute__ ((section(".data")));
@@ -46,14 +43,6 @@ static bd_t bdata __attribute__ ((section(".data")));
  * Board-specific Platform code can reimplement show_boot_progress () if needed
  */
 __weak void show_boot_progress(int val) {}
-
-#if defined(CONFIG_SPL_OS_BOOT) || CONFIG_IS_ENABLED(HANDOFF)
-/* weak, default platform-specific function to initialize dram banks */
-__weak int dram_init_banksize(void)
-{
-	return 0;
-}
-#endif
 
 /*
  * Default function to determine if u-boot or the OS should
@@ -68,10 +57,17 @@ __weak int dram_init_banksize(void)
 #ifdef CONFIG_SPL_OS_BOOT
 __weak int spl_start_uboot(void)
 {
-	puts(SPL_TPL_PROMPT
-	     "Please implement spl_start_uboot() for your board\n");
-	puts(SPL_TPL_PROMPT "Direct Linux boot not active!\n");
+	puts("SPL: Please implement spl_start_uboot() for your board\n");
+	puts("SPL: Direct Linux boot not active!\n");
 	return 1;
+}
+
+/* weak default platform specific function to initialize
+ * dram banks
+ */
+__weak int dram_init_banksize(void)
+{
+	return 0;
 }
 
 /*
@@ -83,11 +79,6 @@ int __weak bootz_setup(ulong image, ulong *start, ulong *end)
 	 return 1;
 }
 #endif
-
-/* Weak default function for arch/board-specific fixups to the spl_image_info */
-void __weak spl_perform_fixups(struct spl_image_info *spl_image)
-{
-}
 
 void spl_fixup_fdt(void)
 {
@@ -104,13 +95,13 @@ void spl_fixup_fdt(void)
 	/* fixup the memory dt node */
 	err = fdt_shrink_to_minimum(fdt_blob, 0);
 	if (err == 0) {
-		printf(SPL_TPL_PROMPT "fdt_shrink_to_minimum err - %d\n", err);
+		printf("spl: fdt_shrink_to_minimum err - %d\n", err);
 		return;
 	}
 
 	err = arch_fixup_fdt(fdt_blob);
 	if (err) {
-		printf(SPL_TPL_PROMPT "arch_fixup_fdt err - %d\n", err);
+		printf("spl: arch_fixup_fdt err - %d\n", err);
 		return;
 	}
 #endif
@@ -131,14 +122,9 @@ __weak void spl_board_prepare_for_boot(void)
 	/* Nothing to do! */
 }
 
-__weak struct image_header *spl_get_load_buffer(ssize_t offset, size_t size)
-{
-	return (struct image_header *)(CONFIG_SYS_TEXT_BASE + offset);
-}
-
 void spl_set_header_raw_uboot(struct spl_image_info *spl_image)
 {
-	ulong u_boot_pos = binman_sym(ulong, u_boot_any, image_pos);
+	ulong u_boot_pos = binman_sym(ulong, u_boot_any, pos);
 
 	spl_image->size = CONFIG_SYS_MONITOR_LEN;
 
@@ -189,18 +175,17 @@ static int spl_load_fit_image(struct spl_image_info *spl_image,
 	spl_image->os = IH_OS_U_BOOT;
 	spl_image->name = "U-Boot";
 
-	debug(SPL_TPL_PROMPT "payload image: %32s load addr: 0x%lx size: %d\n",
-	      spl_image->name, spl_image->load_addr, spl_image->size);
+	debug("spl: payload image: %.*s load addr: 0x%lx size: %d\n",
+	      (int)sizeof(spl_image->name), spl_image->name,
+		spl_image->load_addr, spl_image->size);
 
 #ifdef CONFIG_SPL_FIT_SIGNATURE
 	images.verify = 1;
 #endif
-	ret = fit_image_load(&images, (ulong)header,
+	fit_image_load(&images, (ulong)header,
 		       &fit_uname_fdt, &fit_uname_config,
 		       IH_ARCH_DEFAULT, IH_TYPE_FLATDT, -1,
 		       FIT_LOAD_OPTIONAL, &dt_data, &dt_len);
-	if (ret >= 0)
-		spl_image->fdt_addr = (void *)dt_data;
 
 	conf_noffset = fit_conf_get_node((const void *)header,
 					 fit_uname_config);
@@ -242,14 +227,6 @@ int spl_parse_image_header(struct spl_image_info *spl_image,
 #ifdef CONFIG_SPL_LEGACY_IMAGE_SUPPORT
 		u32 header_size = sizeof(struct image_header);
 
-#ifdef CONFIG_SPL_LEGACY_IMAGE_CRC_CHECK
-		/* check uImage header CRC */
-		if (!image_check_hcrc(header)) {
-			puts("SPL: Image header CRC check failed!\n");
-			return -EINVAL;
-		}
-#endif
-
 		if (spl_image->flags & SPL_COPY_PAYLOAD_ONLY) {
 			/*
 			 * On some system (e.g. powerpc), the load-address and
@@ -267,18 +244,11 @@ int spl_parse_image_header(struct spl_image_info *spl_image,
 			spl_image->size = image_get_data_size(header) +
 				header_size;
 		}
-#ifdef CONFIG_SPL_LEGACY_IMAGE_CRC_CHECK
-		/* store uImage data length and CRC to check later */
-		spl_image->dcrc_data = image_get_load(header);
-		spl_image->dcrc_length = image_get_data_size(header);
-		spl_image->dcrc = image_get_dcrc(header);
-#endif
-
 		spl_image->os = image_get_os(header);
 		spl_image->name = image_get_name(header);
-		debug(SPL_TPL_PROMPT
-		      "payload image: %32s load addr: 0x%lx size: %d\n",
-		      spl_image->name, spl_image->load_addr, spl_image->size);
+		debug("spl: payload image: %.*s load addr: 0x%lx size: %d\n",
+			IH_NMLEN, spl_image->name,
+			spl_image->load_addr, spl_image->size);
 #else
 		/* LEGACY image not supported */
 		debug("Legacy boot image support not enabled, proceeding to other boot methods\n");
@@ -306,8 +276,7 @@ int spl_parse_image_header(struct spl_image_info *spl_image,
 			spl_image->load_addr = CONFIG_SYS_LOAD_ADDR;
 			spl_image->entry_point = CONFIG_SYS_LOAD_ADDR;
 			spl_image->size = end - start;
-			debug(SPL_TPL_PROMPT
-			      "payload zImage, load addr: 0x%lx size: %d\n",
+			debug("spl: payload zImage, load addr: 0x%lx size: %d\n",
 			      spl_image->load_addr, spl_image->size);
 			return 0;
 		}
@@ -335,51 +304,15 @@ __weak void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
 	image_entry_noargs_t image_entry =
 		(image_entry_noargs_t)spl_image->entry_point;
 
-	debug("image entry point: 0x%lx\n", spl_image->entry_point);
+	debug("image entry point: 0x%lX\n", spl_image->entry_point);
 	image_entry();
 }
-
-#if CONFIG_IS_ENABLED(HANDOFF)
-/**
- * Set up the SPL hand-off information
- *
- * This is initially empty (zero) but can be written by
- */
-static int setup_spl_handoff(void)
-{
-	struct spl_handoff *ho;
-
-	ho = bloblist_ensure(BLOBLISTT_SPL_HANDOFF, sizeof(struct spl_handoff));
-	if (!ho)
-		return -ENOENT;
-
-	return 0;
-}
-
-static int write_spl_handoff(void)
-{
-	struct spl_handoff *ho;
-
-	ho = bloblist_find(BLOBLISTT_SPL_HANDOFF, sizeof(struct spl_handoff));
-	if (!ho)
-		return -ENOENT;
-	handoff_save_dram(ho);
-#ifdef CONFIG_SANDBOX
-	ho->arch.magic = TEST_HANDOFF_MAGIC;
-#endif
-	debug(SPL_TPL_PROMPT "Wrote SPL handoff\n");
-
-	return 0;
-}
-#else
-static inline int setup_spl_handoff(void) { return 0; }
-static inline int write_spl_handoff(void) { return 0; }
-
-#endif /* HANDOFF */
 
 static int spl_common_init(bool setup_malloc)
 {
 	int ret;
+
+	debug("spl_early_init()\n");
 
 #if CONFIG_VAL(SYS_MALLOC_F_LEN)
 	if (setup_malloc) {
@@ -397,30 +330,6 @@ static int spl_common_init(bool setup_malloc)
 		return ret;
 	}
 	bootstage_mark_name(BOOTSTAGE_ID_START_SPL, "spl");
-#if CONFIG_IS_ENABLED(LOG)
-	ret = log_init();
-	if (ret) {
-		debug("%s: Failed to set up logging\n", __func__);
-		return ret;
-	}
-#endif
-	if (CONFIG_IS_ENABLED(BLOBLIST)) {
-		ret = bloblist_init();
-		if (ret) {
-			debug("%s: Failed to set up bloblist: ret=%d\n",
-			      __func__, ret);
-			return ret;
-		}
-	}
-	if (CONFIG_IS_ENABLED(HANDOFF)) {
-		int ret;
-
-		ret = setup_spl_handoff();
-		if (ret) {
-			puts(SPL_TPL_PROMPT "Cannot set up SPL handoff\n");
-			hang();
-		}
-	}
 	if (CONFIG_IS_ENABLED(OF_CONTROL) && !CONFIG_IS_ENABLED(OF_PLATDATA)) {
 		ret = fdtdec_setup();
 		if (ret) {
@@ -444,10 +353,6 @@ static int spl_common_init(bool setup_malloc)
 
 void spl_set_bd(void)
 {
-	/*
-	 * NOTE: On some platforms (e.g. x86) bdata may be in flash and not
-	 * writeable.
-	 */
 	if (!gd->bd)
 		gd->bd = &bdata;
 }
@@ -455,8 +360,6 @@ void spl_set_bd(void)
 int spl_early_init(void)
 {
 	int ret;
-
-	debug("%s\n", __func__);
 
 	ret = spl_common_init(true);
 	if (ret)
@@ -471,8 +374,6 @@ int spl_init(void)
 	int ret;
 	bool setup_malloc = !(IS_ENABLED(CONFIG_SPL_STACK_R) &&
 			IS_ENABLED(CONFIG_SPL_SYS_MALLOC_SIMPLE));
-
-	debug("%s\n", __func__);
 
 	if (!(gd->flags & GD_FLG_SPL_EARLY_INIT)) {
 		ret = spl_common_init(setup_malloc);
@@ -513,29 +414,16 @@ static struct spl_image_loader *spl_ll_find_loader(uint boot_device)
 static int spl_load_image(struct spl_image_info *spl_image,
 			  struct spl_image_loader *loader)
 {
-	int ret;
 	struct spl_boot_device bootdev;
 
 	bootdev.boot_device = loader->boot_device;
 	bootdev.boot_device_name = NULL;
 
-	ret = loader->load_image(spl_image, &bootdev);
-#ifdef CONFIG_SPL_LEGACY_IMAGE_CRC_CHECK
-	if (!ret && spl_image->dcrc_length) {
-		/* check data crc */
-		ulong dcrc = crc32_wd(0, (unsigned char *)spl_image->dcrc_data,
-				      spl_image->dcrc_length, CHUNKSZ_CRC32);
-		if (dcrc != spl_image->dcrc) {
-			puts("SPL: Image data CRC check failed!\n");
-			ret = -EINVAL;
-		}
-	}
-#endif
-	return ret;
+	return loader->load_image(spl_image, &bootdev);
 }
 
 /**
- * boot_from_devices() - Try loading a booting U-Boot from a list of devices
+ * boot_from_devices() - Try loading an booting U-Boot from a list of devices
  *
  * @spl_image: Place to put the image details if successful
  * @spl_boot_list: List of boot devices to try
@@ -555,12 +443,10 @@ static int boot_from_devices(struct spl_image_info *spl_image,
 		if (loader)
 			printf("Trying to boot from %s\n", loader->name);
 		else
-			puts(SPL_TPL_PROMPT "Unsupported Boot Device!\n");
+			puts("SPL: Unsupported Boot Device!\n");
 #endif
-		if (loader && !spl_load_image(spl_image, loader)) {
-			spl_image->boot_device = spl_boot_list[i];
+		if (loader && !spl_load_image(spl_image, loader))
 			return 0;
-		}
 	}
 
 	return -ENODEV;
@@ -576,11 +462,14 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		BOOT_DEVICE_NONE,
 	};
 	struct spl_image_info spl_image;
-	int ret;
 
-	debug(">>" SPL_TPL_PROMPT "board_init_r()\n");
+	debug(">>spl:board_init_r()\n");
 
 	spl_set_bd();
+
+#ifdef CONFIG_SPL_OS_BOOT
+	dram_init_banksize();
+#endif
 
 #if defined(CONFIG_SYS_SPL_MALLOC_START)
 	mem_malloc_init(CONFIG_SYS_SPL_MALLOC_START,
@@ -603,40 +492,18 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	spl_board_init();
 #endif
 
-#if defined(CONFIG_SPL_WATCHDOG_SUPPORT) && CONFIG_IS_ENABLED(WDT)
-	initr_watchdog();
-#endif
-
-	if (IS_ENABLED(CONFIG_SPL_OS_BOOT) || CONFIG_IS_ENABLED(HANDOFF))
-		dram_init_banksize();
-
 	bootcount_inc();
 
 	memset(&spl_image, '\0', sizeof(spl_image));
 #ifdef CONFIG_SYS_SPL_ARGS_ADDR
 	spl_image.arg = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
 #endif
-	spl_image.boot_device = BOOT_DEVICE_NONE;
 	board_boot_order(spl_boot_list);
 
 	if (boot_from_devices(&spl_image, spl_boot_list,
 			      ARRAY_SIZE(spl_boot_list))) {
-		puts(SPL_TPL_PROMPT "failed to boot from all boot devices\n");
+		puts("SPL: failed to boot from all boot devices\n");
 		hang();
-	}
-
-	spl_perform_fixups(&spl_image);
-	if (CONFIG_IS_ENABLED(HANDOFF)) {
-		ret = write_spl_handoff();
-		if (ret)
-			printf(SPL_TPL_PROMPT
-			       "SPL hand-off write failed (err=%d)\n", ret);
-	}
-	if (CONFIG_IS_ENABLED(BLOBLIST)) {
-		ret = bloblist_finish();
-		if (ret)
-			printf("Warning: Failed to finish bloblist (ret=%d)\n",
-			       ret);
 	}
 
 #ifdef CONFIG_CPU_V7M
@@ -652,19 +519,6 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		spl_invoke_atf(&spl_image);
 		break;
 #endif
-#if CONFIG_IS_ENABLED(OPTEE)
-	case IH_OS_TEE:
-		debug("Jumping to U-Boot via OP-TEE\n");
-		spl_optee_entry(NULL, NULL, spl_image.fdt_addr,
-				(void *)spl_image.entry_point);
-		break;
-#endif
-#if CONFIG_IS_ENABLED(OPENSBI)
-	case IH_OS_OPENSBI:
-		debug("Jumping to U-Boot via RISC-V OpenSBI\n");
-		spl_invoke_opensbi(&spl_image);
-		break;
-#endif
 #ifdef CONFIG_SPL_OS_BOOT
 	case IH_OS_LINUX:
 		debug("Jumping to Linux\n");
@@ -676,10 +530,12 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		debug("Unsupported OS image.. Jumping nevertheless..\n");
 	}
 #if CONFIG_VAL(SYS_MALLOC_F_LEN) && !defined(CONFIG_SYS_SPL_MALLOC_SIZE)
-	debug("SPL malloc() used 0x%lx bytes (%ld KB)\n", gd->malloc_ptr,
+	debug("SPL malloc() used %#lx bytes (%ld KB)\n", gd->malloc_ptr,
 	      gd->malloc_ptr / 1024);
 #endif
 #ifdef CONFIG_BOOTSTAGE_STASH
+	int ret;
+
 	bootstage_mark_name(BOOTSTAGE_ID_END_SPL, "end_spl");
 	ret = bootstage_stash((void *)CONFIG_BOOTSTAGE_STASH_ADDR,
 			      CONFIG_BOOTSTAGE_STASH_SIZE);
@@ -705,37 +561,15 @@ void preloader_console_init(void)
 
 	gd->have_console = 1;
 
-#if CONFIG_IS_ENABLED(BANNER_PRINT)
-	puts("\nU-Boot " SPL_TPL_NAME " " PLAIN_VERSION " (" U_BOOT_DATE " - "
-	     U_BOOT_TIME " " U_BOOT_TZ ")\n");
+#ifndef CONFIG_SPL_DISABLE_BANNER_PRINT
+	puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " \
+			U_BOOT_TIME " " U_BOOT_TZ ")\n");
 #endif
 #ifdef CONFIG_SPL_DISPLAY_PRINT
 	spl_display_print();
 #endif
 }
 #endif
-
-/**
- * This function is called before the stack is changed from initial stack to
- * relocated stack. It tries to dump the stack size used
- */
-__weak void spl_relocate_stack_check(void)
-{
-#if CONFIG_IS_ENABLED(SYS_REPORT_STACK_F_USAGE)
-	ulong init_sp = gd->start_addr_sp;
-	ulong stack_bottom = init_sp - CONFIG_VAL(SIZE_LIMIT_PROVIDE_STACK);
-	u8 *ptr = (u8 *)stack_bottom;
-	ulong i;
-
-	for (i = 0; i < CONFIG_VAL(SIZE_LIMIT_PROVIDE_STACK); i++) {
-		if (*ptr != CONFIG_VAL(SYS_STACK_F_CHECK_BYTE))
-			break;
-		ptr++;
-	}
-	printf("SPL initial stack usage: %lu bytes\n",
-	       CONFIG_VAL(SIZE_LIMIT_PROVIDE_STACK) - i);
-#endif
-}
 
 /**
  * spl_relocate_stack_gd() - Relocate stack ready for board_init_r() execution
@@ -761,13 +595,8 @@ ulong spl_relocate_stack_gd(void)
 	gd_t *new_gd;
 	ulong ptr = CONFIG_SPL_STACK_R_ADDR;
 
-	if (CONFIG_IS_ENABLED(SYS_REPORT_STACK_F_USAGE))
-		spl_relocate_stack_check();
-
 #if defined(CONFIG_SPL_SYS_MALLOC_SIMPLE) && CONFIG_VAL(SYS_MALLOC_F_LEN)
 	if (CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN) {
-		debug("SPL malloc() before relocation used 0x%lx bytes (%ld KB)\n",
-		      gd->malloc_ptr, gd->malloc_ptr / 1024);
 		ptr -= CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN;
 		gd->malloc_base = ptr;
 		gd->malloc_limit = CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN;
@@ -781,7 +610,7 @@ ulong spl_relocate_stack_gd(void)
 #if CONFIG_IS_ENABLED(DM)
 	dm_fixup_for_gd_move(new_gd);
 #endif
-#if !defined(CONFIG_ARM) && !defined(CONFIG_RISCV)
+#if !defined(CONFIG_ARM)
 	gd = new_gd;
 #endif
 	return ptr;

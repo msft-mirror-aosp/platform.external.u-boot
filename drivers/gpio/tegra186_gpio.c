@@ -281,4 +281,5 @@ U_BOOT_DRIVER(tegra186_gpio) = {
 	.bind = tegra186_gpio_bind,
 	.probe = tegra186_gpio_probe,
 	.ops = &tegra186_gpio_ops,
+	.flags = DM_FLAG_PRE_RELOC,
 };

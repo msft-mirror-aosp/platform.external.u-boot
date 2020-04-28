@@ -104,10 +104,6 @@ static struct usb_ep_ops ci_ep_ops = {
 	.free_request   = ci_ep_free_request,
 };
 
-__weak void ci_init_after_reset(struct ehci_ctrl *ctrl)
-{
-}
-
 /* Init values for USB endpoints. */
 static const struct usb_ep ci_ep_init[5] = {
 	[0] = {	/* EP 0 */
@@ -891,8 +887,6 @@ static int ci_pullup(struct usb_gadget *gadget, int is_on)
 		writel(USBCMD_ITC(MICRO_8FRAME) | USBCMD_RST, &udc->usbcmd);
 		udelay(200);
 
-		ci_init_after_reset(controller.ctrl);
-
 		writel((unsigned long)controller.epts, &udc->epinitaddr);
 
 		/* select DEVICE mode */
@@ -906,8 +900,7 @@ static int ci_pullup(struct usb_gadget *gadget, int is_on)
 		writel(0xffffffff, &udc->epflush);
 
 		/* Turn on the USB connection by enabling the pullup resistor */
-		setbits_le32(&udc->usbcmd, USBCMD_ITC(MICRO_8FRAME) |
-			     USBCMD_RUN);
+		writel(USBCMD_ITC(MICRO_8FRAME) | USBCMD_RUN, &udc->usbcmd);
 	} else {
 		udc_disconnect();
 	}
@@ -1015,7 +1008,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 	if (driver->speed != USB_SPEED_FULL && driver->speed != USB_SPEED_HIGH)
 		return -EINVAL;
 
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 	ret = usb_setup_ehci_gadget(&controller.ctrl);
 #else
 	ret = usb_lowlevel_init(0, USB_INIT_DEVICE, (void **)&controller.ctrl);

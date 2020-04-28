@@ -19,7 +19,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 unsigned long get_current_tick(void);
-static void reset_timer_masked(void);
 
 /* macro to read the 16 bit timer */
 static inline struct s5p_timer *s5p_get_base_timer(void)
@@ -107,7 +106,7 @@ void __udelay(unsigned long usec)
 		;
 }
 
-static void reset_timer_masked(void)
+void reset_timer_masked(void)
 {
 	struct s5p_timer *const timer = s5p_get_base_timer();
 

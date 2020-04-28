@@ -12,7 +12,6 @@
 #include <part.h>
 #include <config.h>
 #include <command.h>
-#include <env.h>
 #include <image.h>
 #include <linux/ctype.h>
 #include <asm/byteorder.h>

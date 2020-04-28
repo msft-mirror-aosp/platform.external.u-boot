@@ -74,7 +74,6 @@ SECTIONS
   .data.init : { *(.data.init) }
   . = ALIGN(256);
   __init_end = .;
-  _end = .;
 
   .bootpg ADDR(.text) - 0x1000 :
   {

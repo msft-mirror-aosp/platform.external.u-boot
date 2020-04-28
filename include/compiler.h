@@ -120,8 +120,13 @@ typedef unsigned int uint;
 
 #else /* !USE_HOSTCC */
 
+#ifdef CONFIG_USE_STDINT
+/* Provided by gcc. */
+#include <stdint.h>
+#else
 /* Type for `void *' pointers. */
 typedef unsigned long int uintptr_t;
+#endif
 
 #include <linux/string.h>
 #include <linux/types.h>

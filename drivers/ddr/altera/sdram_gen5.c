@@ -3,29 +3,13 @@
  * Copyright Altera Corporation (C) 2014-2015
  */
 #include <common.h>
-#include <dm.h>
 #include <errno.h>
 #include <div64.h>
-#include <ram.h>
-#include <reset.h>
 #include <watchdog.h>
 #include <asm/arch/fpga_manager.h>
-#include <asm/arch/reset_manager.h>
 #include <asm/arch/sdram.h>
 #include <asm/arch/system_manager.h>
 #include <asm/io.h>
-
-#include "sequencer.h"
-
-#ifdef CONFIG_SPL_BUILD
-
-struct altera_gen5_sdram_priv {
-	struct ram_info info;
-};
-
-struct altera_gen5_sdram_platdata {
-	struct socfpga_sdr *sdr;
-};
 
 struct sdram_prot_rule {
 	u32	sdram_start;	/* SDRAM start address */
@@ -42,8 +26,8 @@ struct sdram_prot_rule {
 
 static struct socfpga_system_manager *sysmgr_regs =
 	(struct socfpga_system_manager *)SOCFPGA_SYSMGR_ADDRESS;
-
-static unsigned long sdram_calculate_size(struct socfpga_sdr_ctrl *sdr_ctrl);
+static struct socfpga_sdr_ctrl *sdr_ctrl =
+	(struct socfpga_sdr_ctrl *)SDR_CTRLGRP_ADDRESS;
 
 /**
  * get_errata_rows() - Up the number of DRAM rows to cover entire address space
@@ -120,8 +104,7 @@ static int get_errata_rows(const struct socfpga_sdram_config *cfg)
 }
 
 /* SDRAM protection rules vary from 0-19, a total of 20 rules. */
-static void sdram_set_rule(struct socfpga_sdr_ctrl *sdr_ctrl,
-			   struct sdram_prot_rule *prule)
+static void sdram_set_rule(struct sdram_prot_rule *prule)
 {
 	u32 lo_addr_bits;
 	u32 hi_addr_bits;
@@ -158,8 +141,7 @@ static void sdram_set_rule(struct socfpga_sdr_ctrl *sdr_ctrl,
 	writel(0, &sdr_ctrl->prot_rule_rdwr);
 }
 
-static void sdram_get_rule(struct socfpga_sdr_ctrl *sdr_ctrl,
-			   struct sdram_prot_rule *prule)
+static void sdram_get_rule(struct sdram_prot_rule *prule)
 {
 	u32 addr;
 	u32 id;
@@ -190,8 +172,7 @@ static void sdram_get_rule(struct socfpga_sdr_ctrl *sdr_ctrl,
 }
 
 static void
-sdram_set_protection_config(struct socfpga_sdr_ctrl *sdr_ctrl,
-			    const u32 sdram_start, const u32 sdram_end)
+sdram_set_protection_config(const u32 sdram_start, const u32 sdram_end)
 {
 	struct sdram_prot_rule rule;
 	int rules;
@@ -204,7 +185,7 @@ sdram_set_protection_config(struct socfpga_sdr_ctrl *sdr_ctrl,
 
 	for (rules = 0; rules < 20; rules++) {
 		rule.rule = rules;
-		sdram_set_rule(sdr_ctrl, &rule);
+		sdram_set_rule(&rule);
 	}
 
 	/* new rule: accept SDRAM */
@@ -219,13 +200,13 @@ sdram_set_protection_config(struct socfpga_sdr_ctrl *sdr_ctrl,
 	rule.rule = 0;
 
 	/* set new rule */
-	sdram_set_rule(sdr_ctrl, &rule);
+	sdram_set_rule(&rule);
 
 	/* default rule: reject everything */
 	writel(0x3ff, &sdr_ctrl->protport_default);
 }
 
-static void sdram_dump_protection_config(struct socfpga_sdr_ctrl *sdr_ctrl)
+static void sdram_dump_protection_config(void)
 {
 	struct sdram_prot_rule rule;
 	int rules;
@@ -235,7 +216,7 @@ static void sdram_dump_protection_config(struct socfpga_sdr_ctrl *sdr_ctrl)
 
 	for (rules = 0; rules < 20; rules++) {
 		rule.rule = rules;
-		sdram_get_rule(sdr_ctrl, &rule);
+		sdram_get_rule(&rule);
 		debug("Rule %d, rules ...\n", rules);
 		debug("    sdram start %x\n", rule.sdram_start);
 		debug("    sdram end   %x\n", rule.sdram_end);
@@ -341,8 +322,7 @@ static u32 sdr_get_addr_rw(const struct socfpga_sdram_config *cfg)
  *
  * This function loads the register values into the SDRAM controller block.
  */
-static void sdr_load_regs(struct socfpga_sdr_ctrl *sdr_ctrl,
-			  const struct socfpga_sdram_config *cfg)
+static void sdr_load_regs(const struct socfpga_sdram_config *cfg)
 {
 	const u32 ctrl_cfg = sdr_get_ctrlcfg(cfg);
 	const u32 dram_addrw = sdr_get_addr_rw(cfg);
@@ -446,8 +426,7 @@ static void sdr_load_regs(struct socfpga_sdr_ctrl *sdr_ctrl,
  *
  * Initialize the SDRAM MMR.
  */
-int sdram_mmr_init_full(struct socfpga_sdr_ctrl *sdr_ctrl,
-			unsigned int sdr_phy_reg)
+int sdram_mmr_init_full(unsigned int sdr_phy_reg)
 {
 	const struct socfpga_sdram_config *cfg = socfpga_get_sdram_config();
 	const unsigned int rows =
@@ -457,7 +436,7 @@ int sdram_mmr_init_full(struct socfpga_sdr_ctrl *sdr_ctrl,
 
 	writel(rows, &sysmgr_regs->iswgrp_handoff[4]);
 
-	sdr_load_regs(sdr_ctrl, cfg);
+	sdr_load_regs(cfg);
 
 	/* saving this value to SYSMGR.ISWGRP.HANDOFF.FPGA2SDR */
 	writel(cfg->fpgaport_rst, &sysmgr_regs->iswgrp_handoff[3]);
@@ -480,10 +459,9 @@ int sdram_mmr_init_full(struct socfpga_sdr_ctrl *sdr_ctrl,
 			SDR_CTRLGRP_STATICCFG_APPLYCFG_MASK,
 			1 << SDR_CTRLGRP_STATICCFG_APPLYCFG_LSB);
 
-	sdram_set_protection_config(sdr_ctrl, 0,
-				    sdram_calculate_size(sdr_ctrl) - 1);
+	sdram_set_protection_config(0, sdram_calculate_size() - 1);
 
-	sdram_dump_protection_config(sdr_ctrl);
+	sdram_dump_protection_config();
 
 	return 0;
 }
@@ -494,7 +472,7 @@ int sdram_mmr_init_full(struct socfpga_sdr_ctrl *sdr_ctrl,
  * Calculate SDRAM device size based on SDRAM controller parameters.
  * Size is specified in bytes.
  */
-static unsigned long sdram_calculate_size(struct socfpga_sdr_ctrl *sdr_ctrl)
+unsigned long sdram_calculate_size(void)
 {
 	unsigned long temp;
 	unsigned long row, bank, col, cs, width;
@@ -556,94 +534,3 @@ static unsigned long sdram_calculate_size(struct socfpga_sdr_ctrl *sdr_ctrl)
 
 	return temp;
 }
-
-static int altera_gen5_sdram_ofdata_to_platdata(struct udevice *dev)
-{
-	struct altera_gen5_sdram_platdata *plat = dev->platdata;
-
-	plat->sdr = (struct socfpga_sdr *)devfdt_get_addr_index(dev, 0);
-	if (!plat->sdr)
-		return -ENODEV;
-
-	return 0;
-}
-
-static int altera_gen5_sdram_probe(struct udevice *dev)
-{
-	int ret;
-	unsigned long sdram_size;
-	struct altera_gen5_sdram_platdata *plat = dev->platdata;
-	struct altera_gen5_sdram_priv *priv = dev_get_priv(dev);
-	struct socfpga_sdr_ctrl *sdr_ctrl = &plat->sdr->sdr_ctrl;
-	struct reset_ctl_bulk resets;
-
-	ret = reset_get_bulk(dev, &resets);
-	if (ret) {
-		dev_err(dev, "Can't get reset: %d\n", ret);
-		return -ENODEV;
-	}
-	reset_deassert_bulk(&resets);
-
-	if (sdram_mmr_init_full(sdr_ctrl, 0xffffffff) != 0) {
-		puts("SDRAM init failed.\n");
-		goto failed;
-	}
-
-	debug("SDRAM: Calibrating PHY\n");
-	/* SDRAM calibration */
-	if (sdram_calibration_full(plat->sdr) == 0) {
-		puts("SDRAM calibration failed.\n");
-		goto failed;
-	}
-
-	sdram_size = sdram_calculate_size(sdr_ctrl);
-	debug("SDRAM: %ld MiB\n", sdram_size >> 20);
-
-	/* Sanity check ensure correct SDRAM size specified */
-	if (get_ram_size(0, sdram_size) != sdram_size) {
-		puts("SDRAM size check failed!\n");
-		goto failed;
-	}
-
-	priv->info.base = 0;
-	priv->info.size = sdram_size;
-
-	return 0;
-
-failed:
-	reset_release_bulk(&resets);
-	return -ENODEV;
-}
-
-static int altera_gen5_sdram_get_info(struct udevice *dev,
-				      struct ram_info *info)
-{
-	struct altera_gen5_sdram_priv *priv = dev_get_priv(dev);
-
-	info->base = priv->info.base;
-	info->size = priv->info.size;
-
-	return 0;
-}
-
-static struct ram_ops altera_gen5_sdram_ops = {
-	.get_info = altera_gen5_sdram_get_info,
-};
-
-static const struct udevice_id altera_gen5_sdram_ids[] = {
-	{ .compatible = "altr,sdr-ctl" },
-	{ /* sentinel */ }
-};
-
-U_BOOT_DRIVER(altera_gen5_sdram) = {
-	.name = "altr_sdr_ctl",
-	.id = UCLASS_RAM,
-	.of_match = altera_gen5_sdram_ids,
-	.ops = &altera_gen5_sdram_ops,
-	.ofdata_to_platdata = altera_gen5_sdram_ofdata_to_platdata,
-	.platdata_auto_alloc_size = sizeof(struct altera_gen5_sdram_platdata),
-	.probe = altera_gen5_sdram_probe,
-	.priv_auto_alloc_size = sizeof(struct altera_gen5_sdram_priv),
-};
-
-#endif /* CONFIG_SPL_BUILD */

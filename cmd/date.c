@@ -159,18 +159,18 @@ int mk_date (const char *datestr, struct rtc_time *tmp)
 	int len, val;
 	char *ptr;
 
-	ptr = strchr(datestr, '.');
-	len = strlen(datestr);
+	ptr = strchr (datestr,'.');
+	len = strlen (datestr);
 
 	/* Set seconds */
 	if (ptr) {
 		int sec;
 
-		ptr++;
+		*ptr++ = '\0';
 		if ((len - (ptr - datestr)) != 2)
 			return (-1);
 
-		len -= 3;
+		len = strlen (datestr);
 
 		if (cnvrt2 (ptr, &sec))
 			return (-1);

@@ -102,6 +102,10 @@ static int media[MAX_UNITS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 #define RTL_R16(reg)		readw(ioaddr + (reg))
 #define RTL_R32(reg)		readl(ioaddr + (reg))
 
+#define ETH_FRAME_LEN	MAX_ETH_FRAME_SIZE
+#define ETH_ALEN	MAC_ADDR_LEN
+#define ETH_ZLEN	60
+
 #define bus_to_phys(a)	pci_mem_to_phys((pci_dev_t)(unsigned long)dev->priv, \
 	(pci_addr_t)(unsigned long)a)
 #define phys_to_bus(a)	pci_phys_to_mem((pci_dev_t)(unsigned long)dev->priv, \
@@ -257,7 +261,6 @@ static struct {
 	{"RTL-8168/8111g",	0x4c, 0xff7e1880,},
 	{"RTL-8101e",		0x34, 0xff7e1880,},
 	{"RTL-8100e",		0x32, 0xff7e1880,},
-	{"RTL-8168h/8111h",	0x54, 0xff7e1880,},
 };
 
 enum _DescStatusBit {
@@ -302,7 +305,7 @@ static unsigned char rxdata[RX_BUF_LEN];
  */
 #if RTL8169_DESC_SIZE < ARCH_DMA_MINALIGN
 #if !defined(CONFIG_SYS_NONCACHED_MEMORY) && \
-	!CONFIG_IS_ENABLED(SYS_DCACHE_OFF) && !defined(CONFIG_X86)
+	!defined(CONFIG_SYS_DCACHE_OFF) && !defined(CONFIG_X86)
 #warning cache-line size is larger than descriptor size
 #endif
 #endif
@@ -942,23 +945,6 @@ static void rtl_halt(struct eth_device *dev)
 }
 #endif
 
-#ifdef CONFIG_DM_ETH
-static int rtl8169_write_hwaddr(struct udevice *dev)
-{
-	struct eth_pdata *plat = dev_get_platdata(dev);
-	unsigned int i;
-
-	RTL_W8(Cfg9346, Cfg9346_Unlock);
-
-	for (i = 0; i < MAC_ADDR_LEN; i++)
-		RTL_W8(MAC0 + i, plat->enetaddr[i]);
-
-	RTL_W8(Cfg9346, Cfg9346_Lock);
-
-	return 0;
-}
-#endif
-
 /**************************************************************************
 INIT - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
@@ -1213,7 +1199,6 @@ static const struct eth_ops rtl8169_eth_ops = {
 	.send	= rtl8169_eth_send,
 	.recv	= rtl8169_eth_recv,
 	.stop	= rtl8169_eth_stop,
-	.write_hwaddr = rtl8169_write_hwaddr,
 };
 
 static const struct udevice_id rtl8169_eth_ids[] = {

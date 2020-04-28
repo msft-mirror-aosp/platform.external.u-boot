@@ -11,6 +11,7 @@
 /* DDR */
 #define CONFIG_DIMM_SLOTS_PER_CTLR	1
 #define CONFIG_CHIP_SELECTS_PER_CTRL	1
+#define CONFIG_NR_DRAM_BANKS		2
 #define CONFIG_SYS_SDRAM_SIZE		0x40000000
 #define CONFIG_CMD_MEMINFO
 #define CONFIG_SYS_MEMTEST_START	0x80000000
@@ -98,8 +99,7 @@
 			"${scriptaddr} ${prefix}${script}; "    \
 		"env exists secureboot && load ${devtype} "     \
 			"${devnum}:${distro_bootpart} "		\
-			"${scripthdraddr} ${prefix}${boot_script_hdr}; " \
-			"env exists secureboot "	\
+			"${scripthdraddr} ${prefix}${boot_script_hdr} " \
 			"&& esbc_validate ${scripthdraddr};"    \
 		"source ${scriptaddr}\0"	  \
 	"installer=load mmc 0:2 $load_addr "	\
@@ -113,14 +113,8 @@
 		"bootm $load_addr#$board\0"
 
 #undef CONFIG_BOOTCOMMAND
-#ifdef CONFIG_TFABOOT
-#undef QSPI_NOR_BOOTCOMMAND
-#define QSPI_NOR_BOOTCOMMAND "pfe stop; run distro_bootcmd; run qspi_bootcmd; "\
-			     "env exists secureboot && esbc_halt;"
-#else
 #define CONFIG_BOOTCOMMAND "pfe stop; run distro_bootcmd; run qspi_bootcmd; "\
 			   "env exists secureboot && esbc_halt;"
-#endif
 
 #include <asm/fsl_secure_boot.h>
 

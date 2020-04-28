@@ -9,8 +9,7 @@
 #include <common.h>
 
 #include <command.h>
-#include <env.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <linux/stddef.h>
 #include <malloc.h>
 #include <memalign.h>
@@ -123,7 +122,7 @@ static int env_fat_load(void)
 	return env_import(buf, 1);
 
 err_env_relocate:
-	env_set_default(NULL, 0);
+	set_default_env(NULL);
 
 	return -EIO;
 }

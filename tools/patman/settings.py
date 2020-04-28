@@ -14,7 +14,6 @@ import re
 
 import command
 import gitutil
-import tools
 
 """Default settings per-project.
 
@@ -58,25 +57,25 @@ class _ProjectConfigParser(ConfigParser.SafeConfigParser):
     # Check to make sure that bogus project gets general alias.
     >>> config = _ProjectConfigParser("zzz")
     >>> config.readfp(StringIO(sample_config))
-    >>> str(config.get("alias", "enemies"))
+    >>> config.get("alias", "enemies")
     'Evil <evil@example.com>'
 
     # Check to make sure that alias gets overridden by project.
     >>> config = _ProjectConfigParser("sm")
     >>> config.readfp(StringIO(sample_config))
-    >>> str(config.get("alias", "enemies"))
+    >>> config.get("alias", "enemies")
     'Green G. <ugly@example.com>'
 
     # Check to make sure that settings get merged with project.
     >>> config = _ProjectConfigParser("linux")
     >>> config.readfp(StringIO(sample_config))
-    >>> sorted((str(a), str(b)) for (a, b) in config.items("settings"))
+    >>> sorted(config.items("settings"))
     [('am_hero', 'True'), ('process_tags', 'False')]
 
     # Check to make sure that settings works with unknown project.
     >>> config = _ProjectConfigParser("unknown")
     >>> config.readfp(StringIO(sample_config))
-    >>> sorted((str(a), str(b)) for (a, b) in config.items("settings"))
+    >>> sorted(config.items("settings"))
     [('am_hero', 'True')]
     """
     def __init__(self, project_name):
@@ -109,15 +108,14 @@ class _ProjectConfigParser(ConfigParser.SafeConfigParser):
             See SafeConfigParser.
         """
         try:
-            val = ConfigParser.SafeConfigParser.get(
+            return ConfigParser.SafeConfigParser.get(
                 self, "%s_%s" % (self._project_name, section), option,
                 *args, **kwargs
             )
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
-            val = ConfigParser.SafeConfigParser.get(
+            return ConfigParser.SafeConfigParser.get(
                 self, section, option, *args, **kwargs
             )
-        return tools.ToUnicode(val)
 
     def items(self, section, *args, **kwargs):
         """Extend SafeConfigParser to add project_section to section.
@@ -152,8 +150,7 @@ class _ProjectConfigParser(ConfigParser.SafeConfigParser):
 
         item_dict = dict(top_items)
         item_dict.update(project_items)
-        return {(tools.ToUnicode(item), tools.ToUnicode(val))
-                for item, val in item_dict.items()}
+        return item_dict.items()
 
 def ReadGitAliases(fname):
     """Read a git alias file. This is in the form used by git:
@@ -266,7 +263,7 @@ def _ReadAliasFile(fname):
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                words = line.split(None, 2)
+                words = line.split(' ', 2)
                 if len(words) < 3 or words[0] != 'alias':
                     if not bad_line:
                         bad_line = "%s:%d:Invalid line '%s'" % (fname, linenum,

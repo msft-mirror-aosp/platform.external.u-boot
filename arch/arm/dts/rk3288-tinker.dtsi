@@ -55,6 +55,8 @@
 
 	gpio-keys {
 		compatible = "gpio-keys";
+		#address-cells = <1>;
+		#size-cells = <0>;
 		autorepeat;
 
 		pinctrl-names = "default";

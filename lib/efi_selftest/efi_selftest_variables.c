@@ -4,8 +4,10 @@
  *
  * Copyright (c) 2018 Heinrich Schuchardt <xypron.glpk@gmx.de>
  *
- * This unit test checks the runtime services for variables:
- * GetVariable, GetNextVariableName, SetVariable, QueryVariableInfo.
+ * This unit test checks the following protocol services:
+ * ConnectController, DisconnectController,
+ * InstallProtocol, ReinstallProtocol, UninstallProtocol,
+ * OpenProtocol, CloseProtcol, OpenProtocolInformation
  */
 
 #include <efi_selftest.h>
@@ -15,15 +17,12 @@
 
 static struct efi_boot_services *boottime;
 static struct efi_runtime_services *runtime;
-static const efi_guid_t guid_vendor0 =
+static efi_guid_t guid_vendor0 =
 	EFI_GUID(0x67029eb5, 0x0af2, 0xf6b1,
 		 0xda, 0x53, 0xfc, 0xb5, 0x66, 0xdd, 0x1c, 0xe6);
-static const efi_guid_t guid_vendor1 =
+static efi_guid_t guid_vendor1 =
 	EFI_GUID(0xff629290, 0x1fc1, 0xd73f,
 		 0x8f, 0xb1, 0x32, 0xf9, 0x0c, 0xa0, 0x42, 0xea);
-static const efi_guid_t guid_global =
-	EFI_GUID(0x8be4df61, 0x93ca, 0x11d2,
-		 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c);
 
 /*
  * Setup unit test.
@@ -81,7 +80,7 @@ static int execute(void)
 		efi_st_error("GetVariable failed\n");
 		return EFI_ST_FAILURE;
 	}
-	if (memcmp(data, v + 4, 3)) {
+	if (efi_st_memcmp(data, v + 4, 3)) {
 		efi_st_error("GetVariable returned wrong value\n");
 		return EFI_ST_FAILURE;
 	}
@@ -109,7 +108,7 @@ static int execute(void)
 			     (unsigned int)len);
 		return EFI_ST_FAILURE;
 	}
-	if (memcmp(data, v, 8)) {
+	if (efi_st_memcmp(data, v, 8)) {
 		efi_st_error("GetVariable returned wrong value\n");
 		return EFI_ST_FAILURE;
 	}
@@ -119,36 +118,21 @@ static int execute(void)
 				    EFI_VARIABLE_APPEND_WRITE,
 				    7, v + 8);
 	if (ret != EFI_SUCCESS) {
-		efi_st_error("SetVariable(APPEND_WRITE) failed\n");
-	} else {
-		len = EFI_ST_MAX_DATA_SIZE;
-		ret = runtime->get_variable(L"efi_st_var1", &guid_vendor1,
-					    &attr, &len, data);
-		if (ret != EFI_SUCCESS) {
-			efi_st_error("GetVariable failed\n");
-			return EFI_ST_FAILURE;
-		}
-		if (len != 15)
-			efi_st_todo("GetVariable returned wrong length %u\n",
-				    (unsigned int)len);
-		if (memcmp(data, v, len))
-			efi_st_todo("GetVariable returned wrong value\n");
+		efi_st_error("SetVariable failed\n");
+		return EFI_ST_FAILURE;
 	}
-	/* Append variable 2 */
-	ret = runtime->set_variable(L"efi_none", &guid_vendor1,
-				    EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				    EFI_VARIABLE_APPEND_WRITE,
-				    15, v);
-	if (ret != EFI_NOT_FOUND)
-		efi_st_error("SetVariable(APPEND_WRITE) with size 0 to non-existent variable returns wrong code\n");
-	/* Append variable 3 */
-	ret = runtime->set_variable(L"PlatformLangCodes", &guid_global,
-				    EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				    EFI_VARIABLE_RUNTIME_ACCESS |
-				    EFI_VARIABLE_APPEND_WRITE,
-				    15, v);
-	if (ret != EFI_WRITE_PROTECTED)
-		efi_st_todo("SetVariable(APPEND_WRITE) to read-only variable returns wrong code\n");
+	len = EFI_ST_MAX_DATA_SIZE;
+	ret = runtime->get_variable(L"efi_st_var1", &guid_vendor1,
+				    &attr, &len, data);
+	if (ret != EFI_SUCCESS) {
+		efi_st_error("GetVariable failed\n");
+		return EFI_ST_FAILURE;
+	}
+	if (len != 15)
+		efi_st_todo("GetVariable returned wrong length %u\n",
+			    (unsigned int)len);
+	if (efi_st_memcmp(data, v, len))
+		efi_st_todo("GetVariable returned wrong value\n");
 	/* Enumerate variables */
 	boottime->set_mem(&guid, 16, 0);
 	*varname = 0;
@@ -159,22 +143,19 @@ static int execute(void)
 		if (ret == EFI_NOT_FOUND)
 			break;
 		if (ret != EFI_SUCCESS) {
-			efi_st_error("GetNextVariableName failed (%u)\n",
-				     (unsigned int)ret);
-			return EFI_ST_FAILURE;
+			efi_st_todo("GetNextVariableName failed\n");
+			break;
 		}
-		if (!memcmp(&guid, &guid_vendor0, sizeof(efi_guid_t)) &&
+		if (!efi_st_memcmp(&guid, &guid_vendor0, sizeof(efi_guid_t)) &&
 		    !efi_st_strcmp_16_8(varname, "efi_st_var0"))
-			flag |= 1;
-		if (!memcmp(&guid, &guid_vendor1, sizeof(efi_guid_t)) &&
+			flag |= 2;
+		if (!efi_st_memcmp(&guid, &guid_vendor1, sizeof(efi_guid_t)) &&
 		    !efi_st_strcmp_16_8(varname, "efi_st_var1"))
 			flag |= 2;
 	}
-	if (flag != 3) {
-		efi_st_error(
+	if (flag != 3)
+		efi_st_todo(
 			"GetNextVariableName did not return all variables\n");
-		return EFI_ST_FAILURE;
-	}
 	/* Delete variable 1 */
 	ret = runtime->set_variable(L"efi_st_var1", &guid_vendor1,
 				    0, 0, NULL);

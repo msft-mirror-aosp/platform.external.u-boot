@@ -20,6 +20,9 @@
 
 #define CONFIG_FEC_XCV_TYPE		RGMII
 
+#define CONFIG_SF_DEFAULT_BUS		3
+#define CONFIG_SF_DEFAULT_CS		1
+
 #define CONFIG_EXTRA_ENV_BOARD_SETTINGS \
 	"board_type=aristainetos2_7@1\0" \
 	"nor_bootdelay=-2\0" \
@@ -44,6 +47,9 @@
 #define CONFIG_LG4573
 #define CONFIG_LG4573_BUS 0
 #define CONFIG_LG4573_CS 0
+
+#define CONFIG_PWM_IMX
+#define CONFIG_IMX6_PWM_PER_CLK	66000000
 
 #include "aristainetos-common.h"
 

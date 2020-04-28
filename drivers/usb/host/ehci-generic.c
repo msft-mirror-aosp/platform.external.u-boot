@@ -11,7 +11,6 @@
 #include <asm/io.h>
 #include <dm.h>
 #include "ehci.h"
-#include <power/regulator.h>
 
 /*
  * Even though here we don't explicitly use "struct ehci_ctrl"
@@ -23,55 +22,59 @@ struct generic_ehci {
 	struct clk *clocks;
 	struct reset_ctl *resets;
 	struct phy phy;
-#ifdef CONFIG_DM_REGULATOR
-	struct udevice *vbus_supply;
-#endif
 	int clock_count;
 	int reset_count;
 };
 
-#ifdef CONFIG_DM_REGULATOR
-static int ehci_enable_vbus_supply(struct udevice *dev)
+static int ehci_setup_phy(struct udevice *dev, int index)
 {
 	struct generic_ehci *priv = dev_get_priv(dev);
 	int ret;
 
-	ret = device_get_supply_regulator(dev, "vbus-supply",
-					  &priv->vbus_supply);
-	if (ret && ret != -ENOENT)
-		return ret;
-
-	if (priv->vbus_supply) {
-		ret = regulator_set_enable(priv->vbus_supply, true);
-		if (ret) {
-			dev_err(dev, "Error enabling VBUS supply\n");
+	ret = generic_phy_get_by_index(dev, index, &priv->phy);
+	if (ret) {
+		if (ret != -ENOENT) {
+			dev_err(dev, "failed to get usb phy\n");
 			return ret;
 		}
 	} else {
-		dev_dbg(dev, "No vbus supply\n");
+		ret = generic_phy_init(&priv->phy);
+		if (ret) {
+			dev_err(dev, "failed to init usb phy\n");
+			return ret;
+		}
+
+		ret = generic_phy_power_on(&priv->phy);
+		if (ret) {
+			dev_err(dev, "failed to power on usb phy\n");
+			return generic_phy_exit(&priv->phy);
+		}
 	}
 
 	return 0;
 }
 
-static int ehci_disable_vbus_supply(struct generic_ehci *priv)
+static int ehci_shutdown_phy(struct udevice *dev)
 {
-	if (priv->vbus_supply)
-		return regulator_set_enable(priv->vbus_supply, false);
-	else
-		return 0;
-}
-#else
-static int ehci_enable_vbus_supply(struct udevice *dev)
-{
-	return 0;
-}
+	struct generic_ehci *priv = dev_get_priv(dev);
+	int ret = 0;
 
-static int ehci_disable_vbus_supply(struct generic_ehci *priv)
-{
+	if (generic_phy_valid(&priv->phy)) {
+		ret = generic_phy_power_off(&priv->phy);
+		if (ret) {
+			dev_err(dev, "failed to power off usb phy\n");
+			return ret;
+		}
+
+		ret = generic_phy_exit(&priv->phy);
+		if (ret) {
+			dev_err(dev, "failed to power off usb phy\n");
+			return ret;
+		}
+	}
+
 	return 0;
 }
-#endif
 
 static int ehci_usb_probe(struct udevice *dev)
 {
@@ -96,7 +99,7 @@ static int ehci_usb_probe(struct udevice *dev)
 			if (err < 0)
 				break;
 			err = clk_enable(&priv->clocks[i]);
-			if (err && err != -ENOSYS) {
+			if (err) {
 				dev_err(dev, "failed to enable clock %d\n", i);
 				clk_free(&priv->clocks[i]);
 				goto clk_err;
@@ -142,13 +145,9 @@ static int ehci_usb_probe(struct udevice *dev)
 		}
 	}
 
-	err = ehci_enable_vbus_supply(dev);
+	err = ehci_setup_phy(dev, 0);
 	if (err)
 		goto reset_err;
-
-	err = ehci_setup_phy(dev, &priv->phy, 0);
-	if (err)
-		goto regulator_err;
 
 	hccr = map_physmem(dev_read_addr(dev), 0x100, MAP_NOCACHE);
 	hcor = (struct ehci_hcor *)((uintptr_t)hccr +
@@ -161,14 +160,9 @@ static int ehci_usb_probe(struct udevice *dev)
 	return 0;
 
 phy_err:
-	ret = ehci_shutdown_phy(dev, &priv->phy);
+	ret = ehci_shutdown_phy(dev);
 	if (ret)
 		dev_err(dev, "failed to shutdown usb phy\n");
-
-regulator_err:
-	ret = ehci_disable_vbus_supply(priv);
-	if (ret)
-		dev_err(dev, "failed to disable VBUS supply\n");
 
 reset_err:
 	ret = reset_release_all(priv->resets, priv->reset_count);
@@ -191,11 +185,7 @@ static int ehci_usb_remove(struct udevice *dev)
 	if (ret)
 		return ret;
 
-	ret = ehci_shutdown_phy(dev, &priv->phy);
-	if (ret)
-		return ret;
-
-	ret = ehci_disable_vbus_supply(priv);
+	ret = ehci_shutdown_phy(dev);
 	if (ret)
 		return ret;
 

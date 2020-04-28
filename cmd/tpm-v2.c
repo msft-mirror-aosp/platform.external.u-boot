@@ -16,12 +16,7 @@ static int do_tpm2_startup(cmd_tbl_t *cmdtp, int flag, int argc,
 			   char * const argv[])
 {
 	enum tpm2_startup_types mode;
-	struct udevice *dev;
-	int ret;
 
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 	if (argc != 2)
 		return CMD_RET_USAGE;
 
@@ -34,19 +29,14 @@ static int do_tpm2_startup(cmd_tbl_t *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 	}
 
-	return report_return_code(tpm2_startup(dev, mode));
+	return report_return_code(tpm2_startup(mode));
 }
 
 static int do_tpm2_self_test(cmd_tbl_t *cmdtp, int flag, int argc,
 			     char * const argv[])
 {
 	enum tpm2_yes_no full_test;
-	struct udevice *dev;
-	int ret;
 
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 	if (argc != 2)
 		return CMD_RET_USAGE;
 
@@ -59,7 +49,7 @@ static int do_tpm2_self_test(cmd_tbl_t *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 	}
 
-	return report_return_code(tpm2_self_test(dev, full_test));
+	return report_return_code(tpm2_self_test(full_test));
 }
 
 static int do_tpm2_clear(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -68,12 +58,6 @@ static int do_tpm2_clear(cmd_tbl_t *cmdtp, int flag, int argc,
 	u32 handle = 0;
 	const char *pw = (argc < 3) ? NULL : argv[2];
 	const ssize_t pw_sz = pw ? strlen(pw) : 0;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (argc < 2 || argc > 3)
 		return CMD_RET_USAGE;
@@ -88,7 +72,7 @@ static int do_tpm2_clear(cmd_tbl_t *cmdtp, int flag, int argc,
 	else
 		return CMD_RET_USAGE;
 
-	return report_return_code(tpm2_clear(dev, handle, pw, pw_sz));
+	return report_return_code(tpm2_clear(handle, pw, pw_sz));
 }
 
 static int do_tpm2_pcr_extend(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -104,7 +88,7 @@ static int do_tpm2_pcr_extend(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (argc != 3)
 		return CMD_RET_USAGE;
 
-	ret = get_tpm(&dev);
+	ret = uclass_first_device_err(UCLASS_TPM, &dev);
 	if (ret)
 		return ret;
 
@@ -115,7 +99,7 @@ static int do_tpm2_pcr_extend(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (index >= priv->pcr_count)
 		return -EINVAL;
 
-	rc = tpm2_pcr_extend(dev, index, digest);
+	rc = tpm2_pcr_extend(index, digest);
 
 	unmap_sysmem(digest);
 
@@ -135,7 +119,7 @@ static int do_tpm_pcr_read(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (argc != 3)
 		return CMD_RET_USAGE;
 
-	ret = get_tpm(&dev);
+	ret = uclass_first_device_err(UCLASS_TPM, &dev);
 	if (ret)
 		return ret;
 
@@ -149,9 +133,9 @@ static int do_tpm_pcr_read(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	data = map_sysmem(simple_strtoul(argv[2], NULL, 0), 0);
 
-	rc = tpm2_pcr_read(dev, index, priv->pcr_select_min, data, &updates);
+	rc = tpm2_pcr_read(index, priv->pcr_select_min, data, &updates);
 	if (!rc) {
-		printf("PCR #%u content (%u known updates):\n", index, updates);
+		printf("PCR #%u content (%d known updates):\n", index, updates);
 		print_byte_string(data, TPM2_DIGEST_LEN);
 	}
 
@@ -167,12 +151,6 @@ static int do_tpm_get_capability(cmd_tbl_t *cmdtp, int flag, int argc,
 	u8 *data;
 	size_t count;
 	int i, j;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (argc != 5)
 		return CMD_RET_USAGE;
@@ -182,7 +160,7 @@ static int do_tpm_get_capability(cmd_tbl_t *cmdtp, int flag, int argc,
 	data = map_sysmem(simple_strtoul(argv[3], NULL, 0), 0);
 	count = simple_strtoul(argv[4], NULL, 0);
 
-	rc = tpm2_get_capability(dev, capability, property, data, count);
+	rc = tpm2_get_capability(capability, property, data, count);
 	if (rc)
 		goto unmap_data;
 
@@ -208,12 +186,6 @@ static int do_tpm_dam_reset(cmd_tbl_t *cmdtp, int flag, int argc,
 {
 	const char *pw = (argc < 2) ? NULL : argv[1];
 	const ssize_t pw_sz = pw ? strlen(pw) : 0;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (argc > 2)
 		return CMD_RET_USAGE;
@@ -221,7 +193,7 @@ static int do_tpm_dam_reset(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (pw_sz > TPM2_DIGEST_LEN)
 		return -EINVAL;
 
-	return report_return_code(tpm2_dam_reset(dev, pw, pw_sz));
+	return report_return_code(tpm2_dam_reset(pw, pw_sz));
 }
 
 static int do_tpm_dam_parameters(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -236,12 +208,6 @@ static int do_tpm_dam_parameters(cmd_tbl_t *cmdtp, int flag, int argc,
 	unsigned long int max_tries;
 	unsigned long int recovery_time;
 	unsigned long int lockout_recovery;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (argc < 4 || argc > 5)
 		return CMD_RET_USAGE;
@@ -263,7 +229,7 @@ static int do_tpm_dam_parameters(cmd_tbl_t *cmdtp, int flag, int argc,
 	log(LOGC_NONE, LOGL_INFO, "- recoveryTime: %lu\n", recovery_time);
 	log(LOGC_NONE, LOGL_INFO, "- lockoutRecovery: %lu\n", lockout_recovery);
 
-	return report_return_code(tpm2_dam_parameters(dev, pw, pw_sz, max_tries,
+	return report_return_code(tpm2_dam_parameters(pw, pw_sz, max_tries,
 						      recovery_time,
 						      lockout_recovery));
 }
@@ -276,12 +242,6 @@ static int do_tpm_change_auth(cmd_tbl_t *cmdtp, int flag, int argc,
 	const char *oldpw = (argc == 3) ? NULL : argv[3];
 	const ssize_t newpw_sz = strlen(newpw);
 	const ssize_t oldpw_sz = oldpw ? strlen(oldpw) : 0;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (argc < 3 || argc > 4)
 		return CMD_RET_USAGE;
@@ -300,7 +260,7 @@ static int do_tpm_change_auth(cmd_tbl_t *cmdtp, int flag, int argc,
 	else
 		return CMD_RET_USAGE;
 
-	return report_return_code(tpm2_change_auth(dev, handle, newpw, newpw_sz,
+	return report_return_code(tpm2_change_auth(handle, newpw, newpw_sz,
 						   oldpw, oldpw_sz));
 }
 
@@ -311,12 +271,6 @@ static int do_tpm_pcr_setauthpolicy(cmd_tbl_t *cmdtp, int flag, int argc,
 	char *key = argv[2];
 	const char *pw = (argc < 4) ? NULL : argv[3];
 	const ssize_t pw_sz = pw ? strlen(pw) : 0;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (strlen(key) != TPM2_DIGEST_LEN)
 		return -EINVAL;
@@ -324,7 +278,7 @@ static int do_tpm_pcr_setauthpolicy(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (argc < 3 || argc > 4)
 		return CMD_RET_USAGE;
 
-	return report_return_code(tpm2_pcr_setauthpolicy(dev, pw, pw_sz, index,
+	return report_return_code(tpm2_pcr_setauthpolicy(pw, pw_sz, index,
 							 key));
 }
 
@@ -336,12 +290,6 @@ static int do_tpm_pcr_setauthvalue(cmd_tbl_t *cmdtp, int flag,
 	const ssize_t key_sz = strlen(key);
 	const char *pw = (argc < 4) ? NULL : argv[3];
 	const ssize_t pw_sz = pw ? strlen(pw) : 0;
-	struct udevice *dev;
-	int ret;
-
-	ret = get_tpm(&dev);
-	if (ret)
-		return ret;
 
 	if (strlen(key) != TPM2_DIGEST_LEN)
 		return -EINVAL;
@@ -349,7 +297,7 @@ static int do_tpm_pcr_setauthvalue(cmd_tbl_t *cmdtp, int flag,
 	if (argc < 3 || argc > 4)
 		return CMD_RET_USAGE;
 
-	return report_return_code(tpm2_pcr_setauthvalue(dev, pw, pw_sz, index,
+	return report_return_code(tpm2_pcr_setauthvalue(pw, pw_sz, index,
 							key, key_sz));
 }
 
@@ -371,14 +319,14 @@ static cmd_tbl_t tpm2_commands[] = {
 			 do_tpm_pcr_setauthvalue, "", ""),
 };
 
-cmd_tbl_t *get_tpm2_commands(unsigned int *size)
+cmd_tbl_t *get_tpm_commands(unsigned int *size)
 {
 	*size = ARRAY_SIZE(tpm2_commands);
 
 	return tpm2_commands;
 }
 
-U_BOOT_CMD(tpm2, CONFIG_SYS_MAXARGS, 1, do_tpm, "Issue a TPMv2.x command",
+U_BOOT_CMD(tpm, CONFIG_SYS_MAXARGS, 1, do_tpm, "Issue a TPMv2.x command",
 "<command> [<arguments>]\n"
 "\n"
 "info\n"

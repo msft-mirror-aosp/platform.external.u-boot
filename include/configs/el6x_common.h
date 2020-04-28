@@ -20,6 +20,7 @@
 #define CONFIG_MXC_UART
 
 #ifdef CONFIG_SPL
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	(64 * 1024)
 #include "imx6_spl.h"
 #endif
 
@@ -42,6 +43,10 @@
 #define CONFIG_POWER_PFUZE100_I2C_ADDR	0x08
 
 /* Commands */
+#define CONFIG_SF_DEFAULT_BUS		3
+#define CONFIG_SF_DEFAULT_CS		0
+#define CONFIG_SF_DEFAULT_SPEED		20000000
+#define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
 
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
@@ -79,6 +84,7 @@
 #define CONFIG_SYS_MEMTEST_SCRATCH     0x10800000
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS           1
 #define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 
 #define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM

@@ -26,6 +26,5 @@ struct pinctrl_function {
 };
 
 extern struct msm_pinctrl_data apq8016_data;
-extern struct msm_pinctrl_data apq8096_data;
 
 #endif

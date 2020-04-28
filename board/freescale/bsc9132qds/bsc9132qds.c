@@ -9,7 +9,6 @@
 #include <asm/cache.h>
 #include <asm/immap_85xx.h>
 #include <asm/io.h>
-#include <env.h>
 #include <miiphy.h>
 #include <linux/libfdt.h>
 #include <fdt_support.h>
@@ -358,7 +357,7 @@ void fdt_del_node_compat(void *blob, const char *compatible)
 
 #if defined(CONFIG_OF_BOARD_SETUP)
 #ifdef CONFIG_FDT_FIXUP_PARTITIONS
-static const struct node_info nodes[] = {
+struct node_info nodes[] = {
 	{ "cfi-flash",			MTD_DEV_TYPE_NOR,  },
 	{ "fsl,ifc-nand",		MTD_DEV_TYPE_NAND, },
 };

@@ -61,7 +61,7 @@ void lcd_sync(void)
 	 * architectures do not actually implement it. Is there a way to find
 	 * out whether it exists? For now, ARM is safe.
 	 */
-#if defined(CONFIG_ARM) && !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
+#if defined(CONFIG_ARM) && !defined(CONFIG_SYS_DCACHE_OFF)
 	int line_length;
 
 	if (lcd_flush_dcache)
@@ -171,7 +171,8 @@ int drv_lcd_init(void)
 void lcd_clear(void)
 {
 	int bg_color;
-	__maybe_unused ulong addr;
+	char *s;
+	ulong addr;
 	static int do_splash = 1;
 #if LCD_BPP == LCD_COLOR8
 	/* Setting the palette */
@@ -221,10 +222,14 @@ void lcd_clear(void)
 	/* Paint the logo and retrieve LCD base address */
 	debug("[LCD] Drawing the logo...\n");
 	if (do_splash) {
-		if (splash_display() == 0) {
+		s = env_get("splashimage");
+		if (s) {
 			do_splash = 0;
-			lcd_sync();
-			return;
+			addr = simple_strtoul(s, NULL, 16);
+			if (lcd_splash(addr) == 0) {
+				lcd_sync();
+				return;
+			}
 		}
 	}
 
@@ -236,6 +241,14 @@ void lcd_clear(void)
 #endif
 	lcd_sync();
 }
+
+static int do_lcd_clear(cmd_tbl_t *cmdtp, int flag, int argc,
+			char *const argv[])
+{
+	lcd_clear();
+	return 0;
+}
+U_BOOT_CMD(cls,	1, 1, do_lcd_clear, "clear screen", "");
 
 static int lcd_init(void *lcdbase)
 {
@@ -376,6 +389,7 @@ static inline void lcd_logo_plot(int x, int y) {}
 
 #if defined(CONFIG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
 #ifdef CONFIG_SPLASH_SCREEN_ALIGN
+#define BMP_ALIGN_CENTER	0x7FFF
 
 static void splash_align_axis(int *axis, unsigned long panel_size,
 					unsigned long picture_size)

@@ -1913,9 +1913,4 @@
 			};
 		};
 	};
-
-	onewire_tm: onewire {
-		compatible = "w1-gpio";
-		status = "disabled";
-	};
 };

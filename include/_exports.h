@@ -40,7 +40,8 @@
 	EXPORT_FUNC(simple_strtol, long, simple_strtol,
 		    const char *, char **, unsigned int)
 	EXPORT_FUNC(strcmp, int, strcmp, const char *cs, const char *ct)
-#if defined(CONFIG_CMD_I2C) && !defined(CONFIG_DM_I2C)
+#if defined(CONFIG_CMD_I2C) && \
+		(!defined(CONFIG_DM_I2C) || defined(CONFIG_DM_I2C_COMPAT))
 	EXPORT_FUNC(i2c_write, int, i2c_write, uchar, uint, int , uchar * , int)
 	EXPORT_FUNC(i2c_read, int, i2c_read, uchar, uint, int , uchar * , int)
 #else
@@ -49,9 +50,11 @@
 #endif
 
 #if !defined(CONFIG_CMD_SPI) || defined(CONFIG_DM_SPI)
+	EXPORT_FUNC(dummy, void, spi_init, void)
 	EXPORT_FUNC(dummy, void, spi_setup_slave, void)
 	EXPORT_FUNC(dummy, void, spi_free_slave, void)
 #else
+	EXPORT_FUNC(spi_init, void, spi_init, void)
 	EXPORT_FUNC(spi_setup_slave, struct spi_slave *, spi_setup_slave,
 		    unsigned int, unsigned int, unsigned int, unsigned int)
 	EXPORT_FUNC(spi_free_slave, void, spi_free_slave, struct spi_slave *)

@@ -7,6 +7,7 @@
  */
 
 #include <common.h>
+#include <netdev.h>
 #include <asm/io.h>
 #include <asm/arch/am35x_def.h>
 
@@ -23,5 +24,5 @@ int cpu_eth_init(bd_t *bis)
 	reset &= ~CPGMACSS_SW_RST;
 	writel(reset, &am35x_scm_general_regs->ip_sw_reset);
 
-	return 0;
+	return davinci_emac_initialize();
 }

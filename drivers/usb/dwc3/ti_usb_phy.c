@@ -19,6 +19,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <ti-usb-phy-uboot.h>
+#include <usb/lin_gadget_compat.h>
 #include <linux/ioport.h>
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>

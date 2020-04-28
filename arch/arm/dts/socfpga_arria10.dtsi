@@ -21,11 +21,6 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 
-	chosen {
-		tick-timer = &timer2;
-		u-boot,dm-pre-reloc;
-	};
-
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -60,7 +55,6 @@
 		device_type = "soc";
 		interrupt-parent = <&intc>;
 		ranges;
-		u-boot,dm-pre-reloc;
 
 		amba {
 			compatible = "simple-bus";
@@ -99,35 +93,29 @@
 		clkmgr@ffd04000 {
 				compatible = "altr,clk-mgr";
 				reg = <0xffd04000 0x1000>;
-				u-boot,dm-pre-reloc;
 
 				clocks {
 					#address-cells = <1>;
 					#size-cells = <0>;
-					u-boot,dm-pre-reloc;
 
 					cb_intosc_hs_div2_clk: cb_intosc_hs_div2_clk {
 						#clock-cells = <0>;
 						compatible = "fixed-clock";
-						u-boot,dm-pre-reloc;
 					};
 
 					cb_intosc_ls_clk: cb_intosc_ls_clk {
 						#clock-cells = <0>;
 						compatible = "fixed-clock";
-						u-boot,dm-pre-reloc;
 					};
 
 					f2s_free_clk: f2s_free_clk {
 						#clock-cells = <0>;
 						compatible = "fixed-clock";
-						u-boot,dm-pre-reloc;
 					};
 
 					osc1: osc1 {
 						#clock-cells = <0>;
 						compatible = "fixed-clock";
-						u-boot,dm-pre-reloc;
 					};
 
 					main_pll: main_pll@40 {
@@ -138,7 +126,6 @@
 						clocks = <&osc1>, <&cb_intosc_ls_clk>,
 							 <&f2s_free_clk>;
 						reg = <0x40>;
-						u-boot,dm-pre-reloc;
 
 						main_mpu_base_clk: main_mpu_base_clk {
 							#clock-cells = <0>;
@@ -152,7 +139,6 @@
 							compatible = "altr,socfpga-a10-perip-clk";
 							clocks = <&main_pll>;
 							div-reg = <0x144 0 11>;
-							u-boot,dm-pre-reloc;
 						};
 
 						main_emaca_clk: main_emaca_clk@68 {
@@ -228,7 +214,6 @@
 						clocks = <&osc1>, <&cb_intosc_ls_clk>,
 							 <&f2s_free_clk>, <&main_periph_ref_clk>;
 						reg = <0xC0>;
-						u-boot,dm-pre-reloc;
 
 						peri_mpu_base_clk: peri_mpu_base_clk {
 							#clock-cells = <0>;
@@ -242,7 +227,6 @@
 							compatible = "altr,socfpga-a10-perip-clk";
 							clocks = <&periph_pll>;
 							div-reg = <0x144 16 11>;
-							u-boot,dm-pre-reloc;
 						};
 
 						peri_emaca_clk: peri_emaca_clk@e8 {
@@ -318,7 +302,6 @@
 							 <&osc1>, <&cb_intosc_hs_div2_clk>,
 							 <&f2s_free_clk>;
 						reg = <0x64>;
-						u-boot,dm-pre-reloc;
 					};
 
 					s2f_user1_free_clk: s2f_user1_free_clk@104 {
@@ -345,7 +328,6 @@
 						compatible = "altr,socfpga-a10-perip-clk";
 						clocks = <&noc_free_clk>;
 						fixed-divider = <4>;
-						u-boot,dm-pre-reloc;
 					};
 
 					l4_main_clk: l4_main_clk {
@@ -445,8 +427,8 @@
 			rx-fifo-depth = <16384>;
 			clocks = <&l4_mp_clk>;
 			clock-names = "stmmaceth";
-			resets = <&rst EMAC0_RESET>, <&rst EMAC0_OCP_RESET>;
-			reset-names = "stmmaceth", "stmmaceth-ocp";
+			resets = <&rst EMAC0_RESET>;
+			reset-names = "stmmaceth";
 			snps,axi-config = <&socfpga_axi_setup>;
 			status = "disabled";
 		};
@@ -465,8 +447,8 @@
 			rx-fifo-depth = <16384>;
 			clocks = <&l4_mp_clk>;
 			clock-names = "stmmaceth";
-			resets = <&rst EMAC1_RESET>, <&rst EMAC1_OCP_RESET>;
-			reset-names = "stmmaceth", "stmmaceth-ocp";
+			resets = <&rst EMAC1_RESET>;
+			reset-names = "stmmaceth";
 			snps,axi-config = <&socfpga_axi_setup>;
 			status = "disabled";
 		};
@@ -485,8 +467,6 @@
 			rx-fifo-depth = <16384>;
 			clocks = <&l4_mp_clk>;
 			clock-names = "stmmaceth";
-			resets = <&rst EMAC2_RESET>, <&rst EMAC2_OCP_RESET>;
-			reset-names = "stmmaceth", "stmmaceth-ocp";
 			snps,axi-config = <&socfpga_axi_setup>;
 			status = "disabled";
 		};
@@ -567,8 +547,6 @@
 			reg = <0xffc02200 0x100>;
 			interrupts = <0 105 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst I2C0_RESET>;
-			reset-names = "i2c";
 			status = "disabled";
 		};
 
@@ -579,8 +557,6 @@
 			reg = <0xffc02300 0x100>;
 			interrupts = <0 106 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst I2C1_RESET>;
-			reset-names = "i2c";
 			status = "disabled";
 		};
 
@@ -591,8 +567,6 @@
 			reg = <0xffc02400 0x100>;
 			interrupts = <0 107 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst I2C2_RESET>;
-			reset-names = "i2c";
 			status = "disabled";
 		};
 
@@ -603,8 +577,6 @@
 			reg = <0xffc02500 0x100>;
 			interrupts = <0 108 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst I2C3_RESET>;
-			reset-names = "i2c";
 			status = "disabled";
 		};
 
@@ -615,8 +587,6 @@
 			reg = <0xffc02600 0x100>;
 			interrupts = <0 109 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst I2C4_RESET>;
-			reset-names = "i2c";
 			status = "disabled";
 		};
 
@@ -660,7 +630,6 @@
 			fifo-depth = <0x400>;
 			clocks = <&l4_mp_clk>, <&sdmmc_clk>;
 			clock-names = "biu", "ciu";
-			resets = <&rst SDMMC_RESET>;
 			status = "disabled";
 		};
 
@@ -668,13 +637,12 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			compatible = "denali,denali-nand-dt", "altr,socfpga-denali-nand";
-			reg = <0xffb90000 0x20>,
-			      <0xffb80000 0x1000>;
+			reg = <0xffb90000 0x72000>,
+			      <0xffb80000 0x10000>;
 			reg-names = "nand_data", "denali_reg";
 			interrupts = <0 99 4>;
 			dma-mask = <0xffffffff>;
 			clocks = <&nand_clk>;
-			resets = <&rst NAND_RESET>;
 			status = "disabled";
 		};
 
@@ -749,7 +717,7 @@
 		};
 
 		qspi: spi@ff809000 {
-			compatible = "cdns,qspi-nor";
+			compatible = "cdns,qspi-nor", "cadence,qspi";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0xff809000 0x100>,
@@ -767,7 +735,6 @@
 			compatible = "altr,rst-mgr";
 			reg = <0xffd05000 0x100>;
 			altr,modrst-offset = <0x20>;
-			u-boot,dm-pre-reloc;
 		};
 
 		scu: snoop-control-unit@ffffc000 {
@@ -811,7 +778,6 @@
 			reg = <0xffd00000 0x100>;
 			clocks = <&l4_sys_free_clk>;
 			clock-names = "timer";
-			u-boot,dm-pre-reloc;
 		};
 
 		timer3: timer3@ffd00100 {
@@ -829,7 +795,6 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst UART0_RESET>;
 			status = "disabled";
 		};
 
@@ -840,7 +805,6 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&l4_sp_clk>;
-			resets = <&rst UART1_RESET>;
 			status = "disabled";
 		};
 

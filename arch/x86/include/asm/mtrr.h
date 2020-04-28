@@ -77,9 +77,8 @@ struct mtrr_state {
  * possibly the cache.
  *
  * @state:	Empty structure to pass in to hold settings
- * @do_caches:	true to disable caches before opening
  */
-void mtrr_open(struct mtrr_state *state, bool do_caches);
+void mtrr_open(struct mtrr_state *state);
 
 /**
  * mtrr_open() - Clean up after adjusting MTRRs, and enable them
@@ -87,9 +86,8 @@ void mtrr_open(struct mtrr_state *state, bool do_caches);
  * This uses the structure containing information returned from mtrr_open().
  *
  * @state:	Structure from mtrr_open()
- * @state:	true to restore cache state to that before mtrr_open()
  */
-void mtrr_close(struct mtrr_state *state, bool do_caches);
+void mtrr_close(struct mtrr_state *state);
 
 /**
  * mtrr_add_request() - Add a new MTRR request

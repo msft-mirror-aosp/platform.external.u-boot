@@ -19,6 +19,9 @@
 /* CPU Timer rate */
 #define CONFIG_SYS_MIPS_TIMER_FREQ	50000000
 
+/* Cache Configuration */
+#define CONFIG_SYS_MIPS_CACHE_MODE	CONF_CM_CACHABLE_NONCOHERENT
+
 /*----------------------------------------------------------------------
  * Memory Layout
  */

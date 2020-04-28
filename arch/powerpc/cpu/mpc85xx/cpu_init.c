@@ -10,7 +10,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <watchdog.h>
 #include <asm/processor.h>
 #include <ioports.h>

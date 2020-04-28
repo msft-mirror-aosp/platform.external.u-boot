@@ -8,7 +8,6 @@
 
 #include <common.h>
 #include <dm.h>
-#include <env.h>
 #include <errno.h>
 #include <i8042.h>
 #include <input.h>
@@ -168,8 +167,19 @@ static int kbd_controller_present(void)
 	return in8(I8042_STS_REG) != 0xff;
 }
 
-/** Flush all buffer from keyboard controller to host*/
-static void i8042_flush(void)
+/*
+ * Implement a weak default function for boards that optionally
+ * need to skip the i8042 initialization.
+ *
+ * TODO(sjg@chromium.org): Use device tree for this?
+ */
+int __weak board_i8042_skip(void)
+{
+	/* As default, don't skip */
+	return 0;
+}
+
+void i8042_flush(void)
 {
 	int timeout;
 
@@ -192,13 +202,7 @@ static void i8042_flush(void)
 	}
 }
 
-/**
- * Disables the keyboard so that key strokes no longer generate scancodes to
- * the host.
- *
- * @return 0 if ok, -1 if keyboard input was found while disabling
- */
-static int i8042_disable(void)
+int i8042_disable(void)
 {
 	if (kbd_input_empty() == 0)
 		return -1;
@@ -262,7 +266,7 @@ static int i8042_start(struct udevice *dev)
 	char *penv;
 	int ret;
 
-	if (!kbd_controller_present()) {
+	if (!kbd_controller_present() || board_i8042_skip()) {
 		debug("i8042 keyboard controller is not present\n");
 		return -ENOENT;
 	}
@@ -286,15 +290,6 @@ static int i8042_start(struct udevice *dev)
 
 	i8042_kbd_update_leds(dev, NORMAL);
 	debug("%s: started\n", __func__);
-
-	return 0;
-}
-
-static int i8042_kbd_remove(struct udevice *dev)
-{
-	if (i8042_disable())
-		log_debug("i8042_disable() failed. fine, continue.\n");
-	i8042_flush();
 
 	return 0;
 }
@@ -353,7 +348,6 @@ U_BOOT_DRIVER(i8042_kbd) = {
 	.id	= UCLASS_KEYBOARD,
 	.of_match = i8042_kbd_ids,
 	.probe = i8042_kbd_probe,
-	.remove = i8042_kbd_remove,
 	.ops	= &i8042_kbd_ops,
 	.priv_auto_alloc_size = sizeof(struct i8042_kbd_priv),
 };

@@ -11,7 +11,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <pci.h>
 #include <asm/processor.h>
 #include <asm/immap_85xx.h>

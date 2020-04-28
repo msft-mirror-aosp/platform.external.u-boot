@@ -14,7 +14,6 @@
 #include <asm/io.h>
 #include <asm/gpio.h>
 #include <linux/iopoll.h>
-#include <watchdog.h>
 
 struct stm32_sdmmc2_plat {
 	struct mmc_config cfg;
@@ -57,10 +56,7 @@ struct stm32_sdmmc2_ctx {
 #define SDMMC_IDMABASE0		0x58	/* SDMMC DMA buffer 0 base address */
 
 /* SDMMC_POWER register */
-#define SDMMC_POWER_PWRCTRL_MASK	GENMASK(1, 0)
-#define SDMMC_POWER_PWRCTRL_OFF		0
-#define SDMMC_POWER_PWRCTRL_CYCLE	2
-#define SDMMC_POWER_PWRCTRL_ON		3
+#define SDMMC_POWER_PWRCTRL		GENMASK(1, 0)
 #define SDMMC_POWER_VSWITCH		BIT(2)
 #define SDMMC_POWER_VSWITCHEN		BIT(3)
 #define SDMMC_POWER_DIRPOL		BIT(4)
@@ -191,7 +187,6 @@ struct stm32_sdmmc2_ctx {
 #define SDMMC_IDMACTRL_IDMAEN		BIT(0)
 
 #define SDMMC_CMD_TIMEOUT		0xFFFFFFFF
-#define SDMMC_BUSYD0END_TIMEOUT_US	2000000
 
 static void stm32_sdmmc2_start_data(struct stm32_sdmmc2_priv *priv,
 				    struct mmc_data *data,
@@ -210,6 +205,9 @@ static void stm32_sdmmc2_start_data(struct stm32_sdmmc2_priv *priv,
 	} else {
 		idmabase0 = (u32)data->src;
 	}
+
+	/* Set the SDMMC Data TimeOut value */
+	writel(SDMMC_CMD_TIMEOUT, priv->base + SDMMC_DTIMER);
 
 	/* Set the SDMMC DataLength value */
 	writel(ctx->data_length, priv->base + SDMMC_DLEN);
@@ -235,11 +233,8 @@ static void stm32_sdmmc2_start_data(struct stm32_sdmmc2_priv *priv,
 }
 
 static void stm32_sdmmc2_start_cmd(struct stm32_sdmmc2_priv *priv,
-				   struct mmc_cmd *cmd, u32 cmd_param,
-				   struct stm32_sdmmc2_ctx *ctx)
+				   struct mmc_cmd *cmd, u32 cmd_param)
 {
-	u32 timeout = 0;
-
 	if (readl(priv->base + SDMMC_CMD) & SDMMC_CMD_CPSMEN)
 		writel(0, priv->base + SDMMC_CMD);
 
@@ -252,26 +247,6 @@ static void stm32_sdmmc2_start_cmd(struct stm32_sdmmc2_priv *priv,
 		else
 			cmd_param |= SDMMC_CMD_WAITRESP_1;
 	}
-
-	/*
-	 * SDMMC_DTIME must be set in two case:
-	 * - on data transfert.
-	 * - on busy request.
-	 * If not done or too short, the dtimeout flag occurs and DPSM stays
-	 * enabled/busy and waits for abort (stop transmission cmd).
-	 * Next data command is not possible whereas DPSM is activated.
-	 */
-	if (ctx->data_length) {
-		timeout = SDMMC_CMD_TIMEOUT;
-	} else {
-		writel(0, priv->base + SDMMC_DCTRL);
-
-		if (cmd->resp_type & MMC_RSP_BUSY)
-			timeout = SDMMC_CMD_TIMEOUT;
-	}
-
-	/* Set the SDMMC Data TimeOut value */
-	writel(timeout, priv->base + SDMMC_DTIMER);
 
 	/* Clear flags */
 	writel(SDMMC_ICR_STATIC_FLAGS, priv->base + SDMMC_ICR);
@@ -330,31 +305,6 @@ static int stm32_sdmmc2_end_cmd(struct stm32_sdmmc2_priv *priv,
 			cmd->response[1] = readl(priv->base + SDMMC_RESP2);
 			cmd->response[2] = readl(priv->base + SDMMC_RESP3);
 			cmd->response[3] = readl(priv->base + SDMMC_RESP4);
-		}
-
-		/* Wait for BUSYD0END flag if busy status is detected */
-		if (cmd->resp_type & MMC_RSP_BUSY &&
-		    status & SDMMC_STA_BUSYD0) {
-			mask = SDMMC_STA_DTIMEOUT | SDMMC_STA_BUSYD0END;
-
-			/* Polling status register */
-			ret = readl_poll_timeout(priv->base + SDMMC_STA,
-						 status, status & mask,
-						 SDMMC_BUSYD0END_TIMEOUT_US);
-
-			if (ret < 0) {
-				debug("%s: timeout reading SDMMC_STA\n",
-				      __func__);
-				ctx->dpsm_abort = true;
-				return ret;
-			}
-
-			if (status & SDMMC_STA_DTIMEOUT) {
-				debug("%s: error SDMMC_STA_DTIMEOUT (0x%x)\n",
-				      __func__, status);
-				ctx->dpsm_abort = true;
-				return -ETIMEDOUT;
-			}
 		}
 	}
 
@@ -433,8 +383,6 @@ static int stm32_sdmmc2_send_cmd(struct udevice *dev, struct mmc_cmd *cmd,
 	u32 cmdat = data ? SDMMC_CMD_CMDTRANS : 0;
 	int ret, retry = 3;
 
-	WATCHDOG_RESET();
-
 retry_cmd:
 	ctx.data_length = 0;
 	ctx.dpsm_abort = false;
@@ -444,7 +392,7 @@ retry_cmd:
 		stm32_sdmmc2_start_data(priv, data, &ctx);
 	}
 
-	stm32_sdmmc2_start_cmd(priv, cmd, cmdat, &ctx);
+	stm32_sdmmc2_start_cmd(priv, cmd, cmdat);
 
 	debug("%s: send cmd %d data: 0x%x @ 0x%x\n",
 	      __func__, cmd->cmdidx,
@@ -474,10 +422,7 @@ retry_cmd:
 		debug("%s: send STOP command to abort dpsm treatments\n",
 		      __func__);
 
-		ctx.data_length = 0;
-
-		stm32_sdmmc2_start_cmd(priv, &stop_cmd,
-				       SDMMC_CMD_CMDSTOP, &ctx);
+		stm32_sdmmc2_start_cmd(priv, &stop_cmd, SDMMC_CMD_CMDSTOP);
 		stm32_sdmmc2_end_cmd(priv, &stop_cmd, &ctx);
 
 		writel(SDMMC_ICR_STATIC_FLAGS, priv->base + SDMMC_ICR);
@@ -495,74 +440,23 @@ retry_cmd:
 	return ret;
 }
 
-/*
- * Reset the SDMMC with the RCC.SDMMCxRST register bit.
- * This will reset the SDMMC to the reset state and the CPSM and DPSM
- * to the Idle state. SDMMC is disabled, Signals Hiz.
- */
-static void stm32_sdmmc2_reset(struct stm32_sdmmc2_priv *priv)
+static void stm32_sdmmc2_pwron(struct stm32_sdmmc2_priv *priv)
 {
 	/* Reset */
 	reset_assert(&priv->reset_ctl);
 	udelay(2);
 	reset_deassert(&priv->reset_ctl);
 
-	/* init the needed SDMMC register after reset */
-	writel(priv->pwr_reg_msk, priv->base + SDMMC_POWER);
-}
+	udelay(1000);
 
-/*
- * Set the SDMMC in power-cycle state.
- * This will make that the SDMMC_D[7:0],
- * SDMMC_CMD and SDMMC_CK are driven low, to prevent the card from being
- * supplied through the signal lines.
- */
-static void stm32_sdmmc2_pwrcycle(struct stm32_sdmmc2_priv *priv)
-{
-	if ((readl(priv->base + SDMMC_POWER) & SDMMC_POWER_PWRCTRL_MASK) ==
-	    SDMMC_POWER_PWRCTRL_CYCLE)
-		return;
-
-	stm32_sdmmc2_reset(priv);
-	writel(SDMMC_POWER_PWRCTRL_CYCLE | priv->pwr_reg_msk,
-	       priv->base + SDMMC_POWER);
-}
-
-/*
- * set the SDMMC state Power-on: the card is clocked
- * manage the SDMMC state control:
- * Reset => Power-Cycle => Power-Off => Power
- *    PWRCTRL=10     PWCTRL=00    PWCTRL=11
- */
-static void stm32_sdmmc2_pwron(struct stm32_sdmmc2_priv *priv)
-{
-	u32 pwrctrl =
-		readl(priv->base + SDMMC_POWER) &  SDMMC_POWER_PWRCTRL_MASK;
-
-	if (pwrctrl == SDMMC_POWER_PWRCTRL_ON)
-		return;
-
-	/* warning: same PWRCTRL value after reset and for power-off state
-	 * it is the reset state here = the only managed by the driver
-	 */
-	if (pwrctrl == SDMMC_POWER_PWRCTRL_OFF) {
-		writel(SDMMC_POWER_PWRCTRL_CYCLE | priv->pwr_reg_msk,
-		       priv->base + SDMMC_POWER);
-	}
+	/* Set Power State to ON */
+	writel(SDMMC_POWER_PWRCTRL | priv->pwr_reg_msk, priv->base + SDMMC_POWER);
 
 	/*
-	 * the remaining case is SDMMC_POWER_PWRCTRL_CYCLE
-	 * switch to Power-Off state: SDMCC disable, signals drive 1
+	 * 1ms: required power up waiting time before starting the
+	 * SD initialization sequence
 	 */
-	writel(SDMMC_POWER_PWRCTRL_OFF | priv->pwr_reg_msk,
-	       priv->base + SDMMC_POWER);
-
-	/* After the 1ms delay set the SDMMC to power-on */
-	mdelay(1);
-	writel(SDMMC_POWER_PWRCTRL_ON | priv->pwr_reg_msk,
-	       priv->base + SDMMC_POWER);
-
-	/* during the first 74 SDMMC_CK cycles the SDMMC is still disabled. */
+	udelay(1000);
 }
 
 #define IS_RISING_EDGE(reg) (reg & SDMMC_CLKCR_NEGEDGE ? 0 : 1)
@@ -570,6 +464,8 @@ static int stm32_sdmmc2_set_ios(struct udevice *dev)
 {
 	struct mmc *mmc = mmc_get_mmc_dev(dev);
 	struct stm32_sdmmc2_priv *priv = dev_get_priv(dev);
+	struct stm32_sdmmc2_plat *plat = dev_get_platdata(dev);
+	struct mmc_config *cfg = &plat->cfg;
 	u32 desired = mmc->clock;
 	u32 sys_clock = clk_get_rate(&priv->clk);
 	u32 clk = 0;
@@ -577,9 +473,7 @@ static int stm32_sdmmc2_set_ios(struct udevice *dev)
 	debug("%s: bus_with = %d, clock = %d\n", __func__,
 	      mmc->bus_width, mmc->clock);
 
-	if (mmc->clk_disable)
-		stm32_sdmmc2_pwrcycle(priv);
-	else
+	if ((mmc->bus_width == 1) && (desired == cfg->f_min))
 		stm32_sdmmc2_pwron(priv);
 
 	/*
@@ -637,11 +531,11 @@ static int stm32_sdmmc2_probe(struct udevice *dev)
 	if (priv->base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	if (dev_read_bool(dev, "st,neg-edge"))
+	if (dev_read_bool(dev, "st,negedge"))
 		priv->clk_reg_msk |= SDMMC_CLKCR_NEGEDGE;
-	if (dev_read_bool(dev, "st,sig-dir"))
+	if (dev_read_bool(dev, "st,dirpol"))
 		priv->pwr_reg_msk |= SDMMC_POWER_DIRPOL;
-	if (dev_read_bool(dev, "st,use-ckin"))
+	if (dev_read_bool(dev, "st,pin-ckin"))
 		priv->clk_reg_msk |= SDMMC_CLKCR_SELCLKRX_CKIN;
 
 	ret = clk_get_by_index(dev, 0, &priv->clk);
@@ -672,7 +566,6 @@ static int stm32_sdmmc2_probe(struct udevice *dev)
 	switch (dev_read_u32_default(dev, "bus-width", 1)) {
 	case 8:
 		cfg->host_caps |= MMC_MODE_8BIT;
-		/* fall through */
 	case 4:
 		cfg->host_caps |= MMC_MODE_4BIT;
 		break;
@@ -684,8 +577,6 @@ static int stm32_sdmmc2_probe(struct udevice *dev)
 
 	upriv->mmc = &plat->mmc;
 
-	/* SDMMC init */
-	stm32_sdmmc2_reset(priv);
 	return 0;
 
 clk_disable:
@@ -696,7 +587,7 @@ clk_free:
 	return ret;
 }
 
-static int stm32_sdmmc_bind(struct udevice *dev)
+int stm32_sdmmc_bind(struct udevice *dev)
 {
 	struct stm32_sdmmc2_plat *plat = dev_get_platdata(dev);
 

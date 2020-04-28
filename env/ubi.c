@@ -7,23 +7,13 @@
 #include <common.h>
 
 #include <command.h>
-#include <env.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <errno.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <search.h>
 #include <ubi_uboot.h>
 #undef crc32
-
-#define _QUOTE(x) #x
-#define QUOTE(x) _QUOTE(x)
-
-#if (CONFIG_ENV_UBI_VID_OFFSET == 0)
- #define UBI_VID_OFFSET NULL
-#else
- #define UBI_VID_OFFSET QUOTE(CONFIG_ENV_UBI_VID_OFFSET)
-#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -38,7 +28,7 @@ static int env_ubi_save(void)
 	if (ret)
 		return ret;
 
-	if (ubi_part(CONFIG_ENV_UBI_PART, UBI_VID_OFFSET)) {
+	if (ubi_part(CONFIG_ENV_UBI_PART, NULL)) {
 		printf("\n** Cannot find mtd partition \"%s\"\n",
 		       CONFIG_ENV_UBI_PART);
 		return 1;
@@ -80,7 +70,7 @@ static int env_ubi_save(void)
 	if (ret)
 		return ret;
 
-	if (ubi_part(CONFIG_ENV_UBI_PART, UBI_VID_OFFSET)) {
+	if (ubi_part(CONFIG_ENV_UBI_PART, NULL)) {
 		printf("\n** Cannot find mtd partition \"%s\"\n",
 		       CONFIG_ENV_UBI_PART);
 		return 1;
@@ -121,10 +111,10 @@ static int env_ubi_load(void)
 	tmp_env1 = (env_t *)env1_buf;
 	tmp_env2 = (env_t *)env2_buf;
 
-	if (ubi_part(CONFIG_ENV_UBI_PART, UBI_VID_OFFSET)) {
+	if (ubi_part(CONFIG_ENV_UBI_PART, NULL)) {
 		printf("\n** Cannot find mtd partition \"%s\"\n",
 		       CONFIG_ENV_UBI_PART);
-		env_set_default(NULL, 0);
+		set_default_env(NULL);
 		return -EIO;
 	}
 
@@ -158,17 +148,17 @@ static int env_ubi_load(void)
 	 */
 	memset(buf, 0x0, CONFIG_ENV_SIZE);
 
-	if (ubi_part(CONFIG_ENV_UBI_PART, UBI_VID_OFFSET)) {
+	if (ubi_part(CONFIG_ENV_UBI_PART, NULL)) {
 		printf("\n** Cannot find mtd partition \"%s\"\n",
 		       CONFIG_ENV_UBI_PART);
-		env_set_default(NULL, 0);
+		set_default_env(NULL);
 		return -EIO;
 	}
 
 	if (ubi_volume_read(CONFIG_ENV_UBI_VOLUME, buf, CONFIG_ENV_SIZE)) {
 		printf("\n** Unable to read env from %s:%s **\n",
 		       CONFIG_ENV_UBI_PART, CONFIG_ENV_UBI_VOLUME);
-		env_set_default(NULL, 0);
+		set_default_env(NULL);
 		return -EIO;
 	}
 
@@ -178,7 +168,6 @@ static int env_ubi_load(void)
 
 U_BOOT_ENV_LOCATION(ubi) = {
 	.location	= ENVL_UBI,
-	ENV_NAME("UBI")
 	.load		= env_ubi_load,
 	.save		= env_save_ptr(env_ubi_save),
 };

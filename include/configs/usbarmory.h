@@ -31,6 +31,7 @@
 #define CONFIG_SYS_FSL_ESDHC_NUM	1
 
 /* USB */
+#define CONFIG_USB_EHCI_MX5
 #define CONFIG_MXC_USB_PORT	1
 #define CONFIG_MXC_USB_PORTSC	(PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS	0
@@ -81,6 +82,7 @@
 #endif
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM			CSD0_BASE_ADDR
 #define PHYS_SDRAM_SIZE			(gd->ram_size)
 

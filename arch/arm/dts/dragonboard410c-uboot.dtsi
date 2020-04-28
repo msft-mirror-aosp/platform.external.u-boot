@@ -6,11 +6,6 @@
  */
 
 / {
-
-	smem {
-		u-boot,dm-pre-reloc;
-	};
-
 	soc {
 		u-boot,dm-pre-reloc;
 
@@ -28,8 +23,8 @@
 
 		serial@78b0000 {
 			u-boot,dm-pre-reloc;
+			};
 		};
-	};
 };
 
 

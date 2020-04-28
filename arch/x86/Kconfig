@@ -32,6 +32,7 @@ config X86_RUN_32BIT
 config X86_RUN_64BIT
 	bool "64-bit"
 	select X86_64
+	select SUPPORT_SPL
 	select SPL
 	select SPL_SEPARATE_BSS
 	help
@@ -115,7 +116,6 @@ source "arch/x86/cpu/efi/Kconfig"
 source "arch/x86/cpu/qemu/Kconfig"
 source "arch/x86/cpu/quark/Kconfig"
 source "arch/x86/cpu/queensbay/Kconfig"
-source "arch/x86/cpu/slimbootloader/Kconfig"
 source "arch/x86/cpu/tangier/Kconfig"
 
 # architecture-specific options below
@@ -177,16 +177,9 @@ config X86_16BIT_INIT
 config SPL_X86_16BIT_INIT
 	bool
 	depends on X86_RESET_VECTOR
-	default y if X86_RESET_VECTOR && SPL && !TPL
+	default y if X86_RESET_VECTOR && SPL
 	help
 	  This is enabled when 16-bit init is in SPL
-
-config TPL_X86_16BIT_INIT
-	bool
-	depends on X86_RESET_VECTOR
-	default y if X86_RESET_VECTOR && TPL
-	help
-	  This is enabled when 16-bit init is in TPL
 
 config X86_32BIT_INIT
 	bool
@@ -345,17 +338,9 @@ config INTEL_ME_FILE
 	  The filename of the file to use as Intel Management Engine in the
 	  board directory.
 
-config USE_HOB
-	bool "Use HOB (Hand-Off Block)"
-	help
-	  Select this option to access HOB (Hand-Off Block) data structures
-	  and parse HOBs. This HOB infra structure can be reused with
-	  different solutions across different platforms.
-
 config HAVE_FSP
 	bool "Add an Firmware Support Package binary"
 	depends on !EFI
-	select USE_HOB
 	help
 	  Select this option to add an Firmware Support Package binary to
 	  the resulting U-Boot image. It is a binary blob which U-Boot uses
@@ -430,7 +415,7 @@ config ENABLE_MRC_CACHE
 	  For platforms that use Intel FSP for the memory initialization,
 	  please check FSP output HOB via U-Boot command 'fsp hob' to see
 	  if there is FSP_NON_VOLATILE_STORAGE_HOB_GUID (asm/fsp/fsp_hob.h).
-	  If such GUID does not exist, MRC cache is not available on such
+	  If such GUID does not exist, MRC cache is not avaiable on such
 	  platform (eg: Intel Queensbay), which means selecting this option
 	  here does not make any difference.
 
@@ -744,21 +729,12 @@ config PCIE_ECAM_SIZE
 	  maximum number of PCI buses as defined by the PCI specification.
 
 config I8259_PIC
-	bool "Enable Intel 8259 compatible interrupt controller"
+	bool
 	default y
 	help
 	  Intel 8259 ISA compatible chipset incorporates two 8259 (master and
 	  slave) interrupt controllers. Include this to have U-Boot set up
 	  the interrupt correctly.
-
-config APIC
-	bool "Enable Intel Advanced Programmable Interrupt Controller"
-	default y
-	help
-	  The (A)dvanced (P)rogrammable (I)nterrupt (C)ontroller is responsible
-	  for catching interrupts and distributing them to one or more CPU
-	  cores. In most cases there are some LAPICs (local) for each core and
-	  one I/O APIC. This conjunction is found on most modern x86 systems.
 
 config PINCTRL_ICH6
 	bool

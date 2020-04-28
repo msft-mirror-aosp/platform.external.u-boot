@@ -18,6 +18,8 @@
 	};
 
 	pinctrl_1: pinctrl@13400000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
 	};
 
 	pinctrl_2: pinctrl@10d10000 {
@@ -32,6 +34,8 @@
 	};
 
 	pinctrl_3: pinctrl@03860000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
 	};
 
 };

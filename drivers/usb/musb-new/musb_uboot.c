@@ -19,7 +19,7 @@ struct int_queue {
 	struct urb urb;
 };
 
-#if !CONFIG_IS_ENABLED(DM_USB)
+#ifndef CONFIG_DM_USB
 struct musb_host_data musb_host;
 #endif
 
@@ -110,7 +110,7 @@ static int _musb_submit_bulk_msg(struct musb_host_data *host,
 
 static int _musb_submit_int_msg(struct musb_host_data *host,
 	struct usb_device *dev, unsigned long pipe,
-	void *buffer, int len, int interval, bool nonblock)
+	void *buffer, int len, int interval)
 {
 	construct_urb(&host->urb, &host->hep, dev, USB_ENDPOINT_XFER_INT, pipe,
 		      buffer, len, NULL, interval);
@@ -243,7 +243,7 @@ int musb_lowlevel_init(struct musb_host_data *host)
 	return 0;
 }
 
-#if !CONFIG_IS_ENABLED(DM_USB)
+#ifndef CONFIG_DM_USB
 int usb_lowlevel_stop(int index)
 {
 	if (!musb_host.host) {
@@ -268,10 +268,9 @@ int submit_control_msg(struct usb_device *dev, unsigned long pipe,
 }
 
 int submit_int_msg(struct usb_device *dev, unsigned long pipe,
-		   void *buffer, int length, int interval, bool nonblock)
+		   void *buffer, int length, int interval)
 {
-	return _musb_submit_int_msg(&musb_host, dev, pipe, buffer, length,
-				    interval, nonblock);
+	return _musb_submit_int_msg(&musb_host, dev, pipe, buffer, length, interval);
 }
 
 struct int_queue *create_int_queue(struct usb_device *dev,
@@ -301,9 +300,9 @@ int usb_lowlevel_init(int index, enum usb_init_type init, void **controller)
 {
 	return musb_lowlevel_init(&musb_host);
 }
-#endif /* !CONFIG_IS_ENABLED(DM_USB) */
+#endif /* !CONFIG_DM_USB */
 
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 static int musb_submit_control_msg(struct udevice *dev, struct usb_device *udev,
 				   unsigned long pipe, void *buffer, int length,
 				   struct devrequest *setup)
@@ -321,11 +320,10 @@ static int musb_submit_bulk_msg(struct udevice *dev, struct usb_device *udev,
 
 static int musb_submit_int_msg(struct udevice *dev, struct usb_device *udev,
 			       unsigned long pipe, void *buffer, int length,
-			       int interval, bool nonblock)
+			       int interval)
 {
 	struct musb_host_data *host = dev_get_priv(dev);
-	return _musb_submit_int_msg(host, udev, pipe, buffer, length, interval,
-				    nonblock);
+	return _musb_submit_int_msg(host, udev, pipe, buffer, length, interval);
 }
 
 static struct int_queue *musb_create_int_queue(struct udevice *dev,
@@ -366,10 +364,10 @@ struct dm_usb_ops musb_usb_ops = {
 	.destroy_int_queue = musb_destroy_int_queue,
 	.reset_root_port = musb_reset_root_port,
 };
-#endif /* CONFIG_IS_ENABLED(DM_USB) */
+#endif /* CONFIG_DM_USB */
 #endif /* CONFIG_USB_MUSB_HOST */
 
-#if defined(CONFIG_USB_MUSB_GADGET) && !CONFIG_IS_ENABLED(DM_USB_GADGET)
+#ifdef CONFIG_USB_MUSB_GADGET
 static struct musb *gadget;
 
 int usb_gadget_handle_interrupts(int index)
@@ -421,31 +419,31 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 }
 #endif /* CONFIG_USB_MUSB_GADGET */
 
-struct musb *musb_register(struct musb_hdrc_platform_data *plat, void *bdata,
-			   void *ctl_regs)
+int musb_register(struct musb_hdrc_platform_data *plat, void *bdata,
+			void *ctl_regs)
 {
 	struct musb **musbp;
 
 	switch (plat->mode) {
-#if defined(CONFIG_USB_MUSB_HOST) && !CONFIG_IS_ENABLED(DM_USB)
+#if defined(CONFIG_USB_MUSB_HOST) && !defined(CONFIG_DM_USB)
 	case MUSB_HOST:
 		musbp = &musb_host.host;
 		break;
 #endif
-#if defined(CONFIG_USB_MUSB_GADGET) && !CONFIG_IS_ENABLED(DM_USB_GADGET)
+#ifdef CONFIG_USB_MUSB_GADGET
 	case MUSB_PERIPHERAL:
 		musbp = &gadget;
 		break;
 #endif
 	default:
-		return ERR_PTR(-EINVAL);
+		return -EINVAL;
 	}
 
 	*musbp = musb_init_controller(plat, (struct device *)bdata, ctl_regs);
-	if (IS_ERR(*musbp)) {
+	if (!*musbp) {
 		printf("Failed to init the controller\n");
-		return ERR_CAST(*musbp);
+		return -EIO;
 	}
 
-	return *musbp;
+	return 0;
 }

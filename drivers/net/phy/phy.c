@@ -7,6 +7,8 @@
  *
  * Based loosely off of Linux's PHY Lib
  */
+
+#include <config.h>
 #include <common.h>
 #include <console.h>
 #include <dm.h>
@@ -462,18 +464,6 @@ static LIST_HEAD(phy_drivers);
 
 int phy_init(void)
 {
-#ifdef CONFIG_NEEDS_MANUAL_RELOC
-	/*
-	 * The pointers inside phy_drivers also needs to be updated incase of
-	 * manual reloc, without which these points to some invalid
-	 * pre reloc address and leads to invalid accesses, hangs.
-	 */
-	struct list_head *head = &phy_drivers;
-
-	head->next = (void *)head->next + gd->reloc_off;
-	head->prev = (void *)head->prev + gd->reloc_off;
-#endif
-
 #ifdef CONFIG_B53_SWITCH
 	phy_b53_init();
 #endif
@@ -561,10 +551,6 @@ int phy_register(struct phy_driver *drv)
 		drv->readext += gd->reloc_off;
 	if (drv->writeext)
 		drv->writeext += gd->reloc_off;
-	if (drv->read_mmd)
-		drv->read_mmd += gd->reloc_off;
-	if (drv->write_mmd)
-		drv->write_mmd += gd->reloc_off;
 #endif
 	return 0;
 }
@@ -636,7 +622,7 @@ static struct phy_driver *get_phy_driver(struct phy_device *phydev,
 }
 
 static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
-					    u32 phy_id, bool is_c45,
+					    u32 phy_id,
 					    phy_interface_t interface)
 {
 	struct phy_device *dev;
@@ -658,26 +644,17 @@ static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
 	dev->link = 0;
 	dev->interface = interface;
 
-#ifdef CONFIG_DM_ETH
-	dev->node = ofnode_null();
-#endif
-
 	dev->autoneg = AUTONEG_ENABLE;
 
 	dev->addr = addr;
 	dev->phy_id = phy_id;
-	dev->is_c45 = is_c45;
 	dev->bus = bus;
 
 	dev->drv = get_phy_driver(dev, interface);
 
-	if (phy_probe(dev)) {
-		printf("%s, PHY probe failed\n", __func__);
-		return NULL;
-	}
+	phy_probe(dev);
 
-	if (addr >= 0 && addr < PHY_MAX_ADDR)
-		bus->phymap[addr] = dev;
+	bus->phymap[addr] = dev;
 
 	return dev;
 }
@@ -722,28 +699,13 @@ static struct phy_device *create_phy_by_mask(struct mii_dev *bus,
 					     phy_interface_t interface)
 {
 	u32 phy_id = 0xffffffff;
-	bool is_c45;
 
 	while (phy_mask) {
 		int addr = ffs(phy_mask) - 1;
 		int r = get_phy_id(bus, addr, devad, &phy_id);
-
-		/*
-		 * If the PHY ID is flat 0 we ignore it.  There are C45 PHYs
-		 * that return all 0s for C22 reads (like Aquantia AQR112) and
-		 * there are C22 PHYs that return all 0s for C45 reads (like
-		 * Atheros AR8035).
-		 */
-		if (r == 0 && phy_id == 0)
-			goto next;
-
 		/* If the PHY ID is mostly f's, we didn't find anything */
-		if (r == 0 && (phy_id & 0x1fffffff) != 0x1fffffff) {
-			is_c45 = (devad == MDIO_DEVAD_NONE) ? false : true;
-			return phy_device_create(bus, addr, phy_id, is_c45,
-						 interface);
-		}
-next:
+		if (r == 0 && (phy_id & 0x1fffffff) != 0x1fffffff)
+			return phy_device_create(bus, addr, phy_id, interface);
 		phy_mask &= ~(1 << addr);
 	}
 	return NULL;
@@ -911,36 +873,6 @@ void phy_connect_dev(struct phy_device *phydev, struct eth_device *dev)
 	debug("%s connected to %s\n", dev->name, phydev->drv->name);
 }
 
-#ifdef CONFIG_PHY_FIXED
-#ifdef CONFIG_DM_ETH
-static struct phy_device *phy_connect_fixed(struct mii_dev *bus,
-					    struct udevice *dev,
-					    phy_interface_t interface)
-#else
-static struct phy_device *phy_connect_fixed(struct mii_dev *bus,
-					    struct eth_device *dev,
-					    phy_interface_t interface)
-#endif
-{
-	struct phy_device *phydev = NULL;
-	int sn;
-	const char *name;
-
-	sn = fdt_first_subnode(gd->fdt_blob, dev_of_offset(dev));
-	while (sn > 0) {
-		name = fdt_get_name(gd->fdt_blob, sn, NULL);
-		if (name && strcmp(name, "fixed-link") == 0) {
-			phydev = phy_device_create(bus, sn, PHY_FIXED_ID, false,
-						   interface);
-			break;
-		}
-		sn = fdt_next_subnode(gd->fdt_blob, sn);
-	}
-
-	return phydev;
-}
-#endif
-
 #ifdef CONFIG_DM_ETH
 struct phy_device *phy_connect(struct mii_dev *bus, int addr,
 			       struct udevice *dev,
@@ -952,14 +884,23 @@ struct phy_device *phy_connect(struct mii_dev *bus, int addr,
 #endif
 {
 	struct phy_device *phydev = NULL;
-	uint mask = (addr > 0) ? (1 << addr) : 0xffffffff;
-
 #ifdef CONFIG_PHY_FIXED
-	phydev = phy_connect_fixed(bus, dev, interface);
-#endif
+	int sn;
+	const char *name;
 
+	sn = fdt_first_subnode(gd->fdt_blob, dev_of_offset(dev));
+	while (sn > 0) {
+		name = fdt_get_name(gd->fdt_blob, sn, NULL);
+		if (name && strcmp(name, "fixed-link") == 0) {
+			phydev = phy_device_create(bus,
+						   sn, PHY_FIXED_ID, interface);
+			break;
+		}
+		sn = fdt_next_subnode(gd->fdt_blob, sn);
+	}
+#endif
 	if (!phydev)
-		phydev = phy_find_by_mask(bus, mask, interface);
+		phydev = phy_find_by_mask(bus, 1 << addr, interface);
 
 	if (phydev)
 		phy_connect_dev(phydev, dev);

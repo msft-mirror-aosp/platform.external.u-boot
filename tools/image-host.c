@@ -106,7 +106,7 @@ static int fit_image_process_hash(void *fit, const char *image_name,
  */
 static int fit_image_write_sig(void *fit, int noffset, uint8_t *value,
 		int value_len, const char *comment, const char *region_prop,
-		int region_proplen, const char *cmdname)
+		int region_proplen)
 {
 	int string_size;
 	int ret;
@@ -128,18 +128,13 @@ static int fit_image_write_sig(void *fit, int noffset, uint8_t *value,
 	}
 	if (comment && !ret)
 		ret = fdt_setprop_string(fit, noffset, "comment", comment);
-	if (!ret) {
-		time_t timestamp = imagetool_get_source_date(cmdname,
-							     time(NULL));
-
-		ret = fit_set_timestamp(fit, noffset, timestamp);
-	}
+	if (!ret)
+		ret = fit_set_timestamp(fit, noffset, time(NULL));
 	if (region_prop && !ret) {
 		uint32_t strdata[2];
 
 		ret = fdt_setprop(fit, noffset, "hashed-nodes",
 				   region_prop, region_proplen);
-		/* This is a legacy offset, it is unused, and must remain 0. */
 		strdata[0] = 0;
 		strdata[1] = cpu_to_fdt32(string_size);
 		if (!ret) {
@@ -157,7 +152,6 @@ static int fit_image_setup_sig(struct image_sign_info *info,
 {
 	const char *node_name;
 	char *algo_name;
-	const char *padding_name;
 
 	node_name = fit_get_name(fit, noffset, NULL);
 	if (fit_image_hash_get_algo(fit, noffset, &algo_name)) {
@@ -165,8 +159,6 @@ static int fit_image_setup_sig(struct image_sign_info *info,
 		       node_name, image_name);
 		return -1;
 	}
-
-	padding_name = fdt_getprop(fit, noffset, "padding", NULL);
 
 	memset(info, '\0', sizeof(*info));
 	info->keydir = keydir;
@@ -176,7 +168,6 @@ static int fit_image_setup_sig(struct image_sign_info *info,
 	info->name = strdup(algo_name);
 	info->checksum = image_get_checksum_algo(algo_name);
 	info->crypto = image_get_crypto_algo(algo_name);
-	info->padding = image_get_padding_algo(padding_name);
 	info->require_keys = require_keys;
 	info->engine_id = engine_id;
 	if (!info->checksum || !info->crypto) {
@@ -209,8 +200,7 @@ static int fit_image_setup_sig(struct image_sign_info *info,
 static int fit_image_process_sig(const char *keydir, void *keydest,
 		void *fit, const char *image_name,
 		int noffset, const void *data, size_t size,
-		const char *comment, int require_keys, const char *engine_id,
-		const char *cmdname)
+		const char *comment, int require_keys, const char *engine_id)
 {
 	struct image_sign_info info;
 	struct image_region region;
@@ -238,7 +228,7 @@ static int fit_image_process_sig(const char *keydir, void *keydest,
 	}
 
 	ret = fit_image_write_sig(fit, noffset, value, value_len, comment,
-			NULL, 0, cmdname);
+			NULL, 0);
 	if (ret) {
 		if (ret == -FDT_ERR_NOSPACE)
 			return -ENOSPC;
@@ -305,7 +295,7 @@ static int fit_image_process_sig(const char *keydir, void *keydest,
  */
 int fit_image_add_verification_data(const char *keydir, void *keydest,
 		void *fit, int image_noffset, const char *comment,
-		int require_keys, const char *engine_id, const char *cmdname)
+		int require_keys, const char *engine_id)
 {
 	const char *image_name;
 	const void *data;
@@ -342,7 +332,7 @@ int fit_image_add_verification_data(const char *keydir, void *keydest,
 				strlen(FIT_SIG_NODENAME))) {
 			ret = fit_image_process_sig(keydir, keydest,
 				fit, image_name, noffset, data, size,
-				comment, require_keys, engine_id, cmdname);
+				comment, require_keys, engine_id);
 		}
 		if (ret)
 			return ret;
@@ -583,7 +573,7 @@ static int fit_config_get_data(void *fit, int conf_noffset, int noffset,
 static int fit_config_process_sig(const char *keydir, void *keydest,
 		void *fit, const char *conf_name, int conf_noffset,
 		int noffset, const char *comment, int require_keys,
-		const char *engine_id, const char *cmdname)
+		const char *engine_id)
 {
 	struct image_sign_info info;
 	const char *node_name;
@@ -618,7 +608,7 @@ static int fit_config_process_sig(const char *keydir, void *keydest,
 	}
 
 	ret = fit_image_write_sig(fit, noffset, value, value_len, comment,
-				region_prop, region_proplen, cmdname);
+				region_prop, region_proplen);
 	if (ret) {
 		if (ret == -FDT_ERR_NOSPACE)
 			return -ENOSPC;
@@ -647,7 +637,7 @@ static int fit_config_process_sig(const char *keydir, void *keydest,
 
 static int fit_config_add_verification_data(const char *keydir, void *keydest,
 		void *fit, int conf_noffset, const char *comment,
-		int require_keys, const char *engine_id, const char *cmdname)
+		int require_keys, const char *engine_id)
 {
 	const char *conf_name;
 	int noffset;
@@ -666,7 +656,7 @@ static int fit_config_add_verification_data(const char *keydir, void *keydest,
 			     strlen(FIT_SIG_NODENAME))) {
 			ret = fit_config_process_sig(keydir, keydest,
 				fit, conf_name, conf_noffset, noffset, comment,
-				require_keys, engine_id, cmdname);
+				require_keys, engine_id);
 		}
 		if (ret)
 			return ret;
@@ -677,7 +667,7 @@ static int fit_config_add_verification_data(const char *keydir, void *keydest,
 
 int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
 			      const char *comment, int require_keys,
-			      const char *engine_id, const char *cmdname)
+			      const char *engine_id)
 {
 	int images_noffset, confs_noffset;
 	int noffset;
@@ -700,8 +690,7 @@ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
 		 * i.e. component image node.
 		 */
 		ret = fit_image_add_verification_data(keydir, keydest,
-				fit, noffset, comment, require_keys, engine_id,
-				cmdname);
+				fit, noffset, comment, require_keys, engine_id);
 		if (ret)
 			return ret;
 	}
@@ -725,7 +714,7 @@ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
 		ret = fit_config_add_verification_data(keydir, keydest,
 						       fit, noffset, comment,
 						       require_keys,
-						       engine_id, cmdname);
+						       engine_id);
 		if (ret)
 			return ret;
 	}

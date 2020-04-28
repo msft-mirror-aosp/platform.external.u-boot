@@ -14,6 +14,8 @@
  * High Level Configuration Options (easy to change)                    *
  *----------------------------------------------------------------------*/
 
+#define CONFIG_MISC_INIT_R
+
 #define CONFIG_MCFUART
 #define CONFIG_SYS_UART_PORT		(0)
 
@@ -77,6 +79,7 @@
  *----------------------------------------------------------------------*/
 
 #define CONFIG_MCFFEC
+#define CONFIG_MII			1
 #define CONFIG_MII_INIT			1
 #define CONFIG_SYS_DISCOVER_PHY
 #define CONFIG_SYS_RX_ETH_BUFFER	8
@@ -140,7 +143,10 @@
 #define	CONFIG_SYS_MAX_FLASH_SECT	128
 #define	CONFIG_SYS_MAX_FLASH_BANKS	1
 #define	CONFIG_SYS_FLASH_ERASE_TOUT	10000000
+#define	CONFIG_SYS_FLASH_PROTECTION
 
+#define CONFIG_SYS_FLASH_CFI
+#define CONFIG_FLASH_CFI_DRIVER
 #define CONFIG_SYS_FLASH_SIZE		16*1024*1024
 #define CONFIG_SYS_FLASH_CFI_WIDTH	FLASH_CFI_16BIT
 

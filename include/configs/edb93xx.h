@@ -31,6 +31,8 @@
 #define CONFIG_SETUP_MEMORY_TAGS	1
 #define CONFIG_BOOTFILE		"edb93xx.img"
 
+#define CONFIG_SYS_LDSCRIPT	"board/cirrus/edb93xx/u-boot.lds"
+
 #ifdef CONFIG_EDB9301
 #define CONFIG_MACH_TYPE		MACH_TYPE_EDB9301
 #define CONFIG_ENV_SECT_SIZE		0x00020000
@@ -91,6 +93,7 @@
 /* Network hardware configuration */
 #define CONFIG_DRIVER_EP93XX_MAC
 #define CONFIG_MII_SUPPRESS_PREAMBLE
+#define CONFIG_MII
 #undef CONFIG_NETCONSOLE
 
 /* SDRAM configuration */
@@ -134,6 +137,7 @@
 #endif
 
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
+#define CONFIG_NR_DRAM_BANKS		8
 
 #define CONFIG_SYS_INIT_SP_ADDR \
     (CONFIG_SYS_SDRAM_BASE + 32*1024 - GENERATED_GBL_DATA_SIZE)
@@ -167,7 +171,11 @@
  * 0x600C0000 - 0x00FFFFFF    unused                 unused
  * 0x61000000 - 0x01FFFFFF    not present            unused
  */
+#define CONFIG_SYS_FLASH_CFI
+#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE
 
+#define CONFIG_SYS_FLASH_PROTECTION
+#define CONFIG_FLASH_CFI_DRIVER
 #define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_SYS_MAX_FLASH_SECT	(256+8)
 

@@ -4,7 +4,6 @@
  * Keerthy <j-keerthy@ti.com>
  */
 
-#include "regulator_common.h"
 #include <common.h>
 #include <fdtdec.h>
 #include <errno.h>
@@ -19,7 +18,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 struct gpio_regulator_platdata {
-	struct regulator_common_platdata common;
 	struct gpio_desc gpio; /* GPIO for regulator voltage control */
 	int states[GPIO_REGULATOR_MAX_STATES];
 	int voltages[GPIO_REGULATOR_MAX_STATES];
@@ -67,7 +65,7 @@ static int gpio_regulator_ofdata_to_platdata(struct udevice *dev)
 		j++;
 	}
 
-	return regulator_common_ofdata_to_platdata(dev, &dev_pdata->common, "enable-gpios");
+	return 0;
 }
 
 static int gpio_regulator_get_value(struct udevice *dev)
@@ -118,23 +116,9 @@ static int gpio_regulator_set_value(struct udevice *dev, int uV)
 	return 0;
 }
 
-static int gpio_regulator_get_enable(struct udevice *dev)
-{
-	struct gpio_regulator_platdata *dev_pdata = dev_get_platdata(dev);
-	return regulator_common_get_enable(dev, &dev_pdata->common);
-}
-
-static int gpio_regulator_set_enable(struct udevice *dev, bool enable)
-{
-	struct gpio_regulator_platdata *dev_pdata = dev_get_platdata(dev);
-	return regulator_common_set_enable(dev, &dev_pdata->common, enable);
-}
-
 static const struct dm_regulator_ops gpio_regulator_ops = {
 	.get_value	= gpio_regulator_get_value,
 	.set_value	= gpio_regulator_set_value,
-	.get_enable	= gpio_regulator_get_enable,
-	.set_enable	= gpio_regulator_set_enable,
 };
 
 static const struct udevice_id gpio_regulator_ids[] = {

@@ -179,8 +179,6 @@ int fsl_initdram(void)
 	fsl_dp_resume();
 #endif
 
-	erratum_a008850_post();
-
 	gd->ram_size = dram_size;
 
 	return 0;

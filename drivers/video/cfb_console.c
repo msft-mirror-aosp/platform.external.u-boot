@@ -65,9 +65,7 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <fdtdec.h>
-#include <gzip.h>
 #include <version.h>
 #include <malloc.h>
 #include <video.h>
@@ -1299,10 +1297,6 @@ next_run:
 			break;
 		}
 	}
-
-	if (cfb_do_flush_cache)
-		flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE);
-
 	return 0;
 error:
 	printf("Error: Too much encoded pixel data, validate your bitmap\n");

@@ -34,7 +34,8 @@ uchar	       *arp_wait_packet_ethaddr;
 int		arp_wait_tx_packet_size;
 ulong		arp_wait_timer_start;
 int		arp_wait_try;
-uchar	       *arp_tx_packet; /* THE ARP transmit packet */
+
+static uchar   *arp_tx_packet;	/* THE ARP transmit packet */
 static uchar	arp_tx_packet_buf[PKTSIZE_ALIGN + PKTALIGN];
 
 void arp_init(void)
@@ -99,7 +100,7 @@ int arp_timeout_check(void)
 {
 	ulong t;
 
-	if (!arp_is_waiting())
+	if (!net_arp_wait_packet_ip.s_addr)
 		return 0;
 
 	t = get_timer(0);
@@ -125,7 +126,6 @@ void arp_receive(struct ethernet_hdr *et, struct ip_udp_hdr *ip, int len)
 	struct arp_hdr *arp;
 	struct in_addr reply_ip_addr;
 	int eth_hdr_size;
-	uchar *tx_packet;
 
 	/*
 	 * We have to deal with two types of ARP packets:
@@ -182,14 +182,13 @@ void arp_receive(struct ethernet_hdr *et, struct ip_udp_hdr *ip, int len)
 		    (net_read_ip(&arp->ar_spa).s_addr & net_netmask.s_addr))
 			udelay(5000);
 #endif
-		tx_packet = net_get_async_tx_pkt_buf();
-		memcpy(tx_packet, et, eth_hdr_size + ARP_HDR_SIZE);
-		net_send_packet(tx_packet, eth_hdr_size + ARP_HDR_SIZE);
+		memcpy(net_tx_packet, et, eth_hdr_size + ARP_HDR_SIZE);
+		net_send_packet(net_tx_packet, eth_hdr_size + ARP_HDR_SIZE);
 		return;
 
 	case ARPOP_REPLY:		/* arp reply */
-		/* are we waiting for a reply? */
-		if (!arp_is_waiting())
+		/* are we waiting for a reply */
+		if (!net_arp_wait_packet_ip.s_addr)
 			break;
 
 #ifdef CONFIG_KEEP_SERVERADDR
@@ -233,9 +232,4 @@ void arp_receive(struct ethernet_hdr *et, struct ip_udp_hdr *ip, int len)
 		      ntohs(arp->ar_op));
 		return;
 	}
-}
-
-bool arp_is_waiting(void)
-{
-	return !!net_arp_wait_packet_ip.s_addr;
 }

@@ -53,6 +53,12 @@
  */
 
 /*
+ * Environment settings
+ */
+#define CONFIG_ENV_SIZE			SZ_2K
+#define CONFIG_ENV_OFFSET		0
+
+/*
  * Environment configuration
  */
 #define CONFIG_BOOTFILE			"uImage"

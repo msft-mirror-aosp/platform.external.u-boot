@@ -4,20 +4,11 @@
  * Coypright (c) 2013 Guntermann & Drunck GmbH
  */
 
-#define LOG_CATEGORY UCLASS_TPM
-
 #include <common.h>
 #include <dm.h>
 #include <asm/unaligned.h>
 #include <tpm-common.h>
 #include "tpm-utils.h"
-
-enum tpm_version tpm_get_version(struct udevice *dev)
-{
-	struct tpm_chip_priv *priv = dev_get_uclass_priv(dev);
-
-	return priv->version;
-}
 
 int pack_byte_string(u8 *str, size_t size, const char *format, ...)
 {
@@ -119,8 +110,6 @@ int unpack_byte_string(const u8 *str, size_t size, const char *format, ...)
 
 		if (offset + length > size) {
 			va_end(args);
-			log_err("Failed to read: size=%zd, offset=%zx, len=%zx\n",
-				size, offset, length);
 			return -1;
 		}
 
@@ -158,9 +147,9 @@ u32 tpm_return_code(const void *response)
 	return get_unaligned_be32(response + return_code_offset);
 }
 
-u32 tpm_sendrecv_command(struct udevice *dev, const void *command,
-			 void *response, size_t *size_ptr)
+u32 tpm_sendrecv_command(const void *command, void *response, size_t *size_ptr)
 {
+	struct udevice *dev;
 	int err, ret;
 	u8 response_buffer[COMMAND_BUFFER_SIZE];
 	size_t response_length;
@@ -173,6 +162,9 @@ u32 tpm_sendrecv_command(struct udevice *dev, const void *command,
 		response_length = sizeof(response_buffer);
 	}
 
+	ret = uclass_first_device_err(UCLASS_TPM, &dev);
+	if (ret)
+		return ret;
 	err = tpm_xfer(dev, command, tpm_command_size(command),
 		       response, &response_length);
 
@@ -184,15 +176,22 @@ u32 tpm_sendrecv_command(struct udevice *dev, const void *command,
 
 	ret = tpm_return_code(response);
 
-	log_debug("TPM response [ret:%d]: ", ret);
+	log(LOGC_NONE, LOGL_DEBUG, "TPM response [ret:%d]: ", ret);
 	for (i = 0; i < response_length; i++)
-		log_debug("%02x ", ((u8 *)response)[i]);
-	log_debug("\n");
+		log(LOGC_NONE, LOGL_DEBUG, "%02x ", ((u8 *)response)[i]);
+	log(LOGC_NONE, LOGL_DEBUG, "\n");
 
 	return ret;
 }
 
-int tpm_init(struct udevice *dev)
+int tpm_init(void)
 {
+	struct udevice *dev;
+	int err;
+
+	err = uclass_first_device_err(UCLASS_TPM, &dev);
+	if (err)
+		return err;
+
 	return tpm_open(dev);
 }

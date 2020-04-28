@@ -7,7 +7,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <errno.h>
 #include <spl.h>
 #include <asm/arch/cpu.h>
@@ -26,6 +25,7 @@
 #include <miiphy.h>
 #include <cpsw.h>
 #include <power/tps65217.h>
+#include <environment.h>
 #include <watchdog.h>
 #include "board.h"
 

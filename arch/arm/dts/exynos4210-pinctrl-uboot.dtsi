@@ -7,6 +7,8 @@
 
 /{
 	pinctrl_0: pinctrl@11400000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
 		compatible = "samsung,exynos4210-pinctrl";
 	};
 
@@ -19,6 +21,8 @@
 	};
 
 	pinctrl_2: pinctrl@03860000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
 	};
 
 };

@@ -35,6 +35,7 @@
 #endif
 
 /* Misc CPU related */
+#define CONFIG_ARCH_CPU_INIT
 #define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs */
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
@@ -52,6 +53,7 @@
  * SDRAM: 1 bank, min 32, max 128 MB
  * Initialized before u-boot gets started.
  */
+#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		ATMEL_BASE_CS1
 #define CONFIG_SYS_SDRAM_SIZE		0x04000000
 
@@ -88,6 +90,7 @@
 
 /* NAND flash */
 #ifdef CONFIG_CMD_NAND
+#define CONFIG_NAND_ATMEL
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		ATMEL_BASE_CS3
 #define CONFIG_SYS_NAND_DBW_8
@@ -117,6 +120,7 @@
 #define CONFIG_ENV_OFFSET	0x4200
 #define CONFIG_ENV_SIZE		0x4200
 #define CONFIG_ENV_SECT_SIZE	0x210
+#define CONFIG_ENV_SPI_MAX_HZ	15000000
 #define CONFIG_BOOTCOMMAND	"sf probe 0:0; " \
 				"sf read 0x22000000 0x84000 0x294000; " \
 				"bootm 0x22000000"
@@ -126,6 +130,7 @@
 #define CONFIG_ENV_OFFSET	0x4200
 #define CONFIG_ENV_SIZE		0x4200
 #define CONFIG_ENV_SECT_SIZE	0x210
+#define CONFIG_ENV_SPI_MAX_HZ	15000000
 #define CONFIG_BOOTCOMMAND	"sf probe 0:1; " \
 				"sf read 0x22000000 0x84000 0x294000; " \
 				"bootm 0x22000000"

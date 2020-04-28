@@ -9,13 +9,12 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/mach-imx/sys_proto.h>
-#include <env.h>
 #include <netdev.h>
-#ifdef CONFIG_FSL_ESDHC_IMX
-#include <fsl_esdhc_imx.h>
+#ifdef CONFIG_FSL_ESDHC
+#include <fsl_esdhc.h>
 #endif
 
-#ifdef CONFIG_FSL_ESDHC_IMX
+#ifdef CONFIG_FSL_ESDHC
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
@@ -253,7 +252,7 @@ U_BOOT_CMD(
 );
 
 #ifdef CONFIG_FEC_MXC
-__weak void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
+void imx_get_mac_from_fuse(int dev_id, unsigned char *mac)
 {
 	struct ocotp_regs *ocotp = (struct ocotp_regs *)OCOTP_BASE_ADDR;
 	struct fuse_bank *bank = &ocotp->bank[4];
@@ -346,7 +345,7 @@ int cpu_eth_init(bd_t *bis)
 	return rc;
 }
 
-#ifdef CONFIG_FSL_ESDHC_IMX
+#ifdef CONFIG_FSL_ESDHC
 int cpu_mmc_init(bd_t *bis)
 {
 	return fsl_esdhc_mmc_init(bis);
@@ -355,13 +354,13 @@ int cpu_mmc_init(bd_t *bis)
 
 int get_clocks(void)
 {
-#ifdef CONFIG_FSL_ESDHC_IMX
+#ifdef CONFIG_FSL_ESDHC
 	gd->arch.sdhc_clk = mxc_get_clock(MXC_ESDHC_CLK);
 #endif
 	return 0;
 }
 
-#if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
+#ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
 {
 #if defined(CONFIG_SYS_ARM_CACHE_WRITETHROUGH)
@@ -374,27 +373,5 @@ void enable_caches(void)
 
     /* Enable caching on OCRAM */
 	mmu_set_region_dcache_behaviour(IRAM_BASE_ADDR, IRAM_SIZE, option);
-}
-#endif
-
-#ifdef CONFIG_SYS_I2C_MXC
-/* i2c_num can be from 0 - 3 */
-int enable_i2c_clk(unsigned char enable, unsigned int i2c_num)
-{
-	struct ccm_reg *ccm = (struct ccm_reg *)CCM_BASE_ADDR;
-
-	switch (i2c_num) {
-	case 0:
-		clrsetbits_le32(&ccm->ccgr4, CCM_CCGR4_I2C0_CTRL_MASK,
-				CCM_CCGR4_I2C0_CTRL_MASK);
-	case 2:
-		clrsetbits_le32(&ccm->ccgr10, CCM_CCGR10_I2C2_CTRL_MASK,
-				CCM_CCGR10_I2C2_CTRL_MASK);
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
 }
 #endif

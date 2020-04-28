@@ -7,8 +7,6 @@
 #include <common.h>
 #include <dm.h>
 #include <lcd.h>
-#include <miiphy.h>
-#include <phy_interface.h>
 #include <ram.h>
 #include <spl.h>
 #include <splash.h>
@@ -23,10 +21,25 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+int get_memory_base_size(fdt_addr_t *mr_base, fdt_addr_t *mr_size)
+{
+	int mr_node;
+
+	mr_node = fdt_path_offset(gd->fdt_blob, "/memory");
+	if (mr_node < 0)
+		return mr_node;
+	*mr_base = fdtdec_get_addr_size_auto_noparent(gd->fdt_blob, mr_node,
+						      "reg", 0, mr_size, false);
+	debug("mr_base = %lx, mr_size= %lx\n", *mr_base, *mr_size);
+
+	return 0;
+}
 int dram_init(void)
 {
-#ifndef CONFIG_SUPPORT_SPL
 	int rv;
+	fdt_addr_t mr_base, mr_size;
+
+#ifndef CONFIG_SUPPORT_SPL
 	struct udevice *dev;
 	rv = uclass_get_device(UCLASS_RAM, 0, &dev);
 	if (rv) {
@@ -35,12 +48,26 @@ int dram_init(void)
 	}
 
 #endif
-	return fdtdec_setup_mem_size_base();
+	rv = get_memory_base_size(&mr_base, &mr_size);
+	if (rv)
+		return rv;
+	gd->ram_size = mr_size;
+	gd->ram_top = mr_base;
+
+	return rv;
 }
 
 int dram_init_banksize(void)
 {
-	return fdtdec_setup_memory_banksize();
+	fdt_addr_t mr_base, mr_size;
+	get_memory_base_size(&mr_base, &mr_size);
+	/*
+	 * Fill in global info with description of SRAM configuration
+	 */
+	gd->bd->bi_dram[0].start = mr_base;
+	gd->bd->bi_dram[0].size  = mr_size;
+
+	return 0;
 }
 
 int board_early_init_f(void)
@@ -125,25 +152,8 @@ int board_init(void)
 	gd->bd->bi_boot_params = gd->bd->bi_dram[0].start + 0x100;
 
 #ifdef CONFIG_ETH_DESIGNWARE
-	const char *phy_mode;
-	int node;
-
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "st,stm32-dwmac");
-	if (node < 0)
-		return -1;
-
-	phy_mode = fdt_getprop(gd->fdt_blob, node, "phy-mode", NULL);
-
-	switch (phy_get_interface_by_name(phy_mode)) {
-	case PHY_INTERFACE_MODE_RMII:
-		STM32_SYSCFG->pmc |= SYSCFG_PMC_MII_RMII_SEL;
-		break;
-	case PHY_INTERFACE_MODE_MII:
-		STM32_SYSCFG->pmc &= ~SYSCFG_PMC_MII_RMII_SEL;
-		break;
-	default:
-		printf("PHY interface %s not supported !\n", phy_mode);
-	}
+	/* Set >RMII mode */
+	STM32_SYSCFG->pmc |= SYSCFG_PMC_MII_RMII_SEL;
 #endif
 
 #if defined(CONFIG_CMD_BMP)

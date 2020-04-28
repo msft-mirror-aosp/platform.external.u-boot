@@ -96,9 +96,7 @@ static int sandbox_i2c_rtc_get(struct udevice *dev, struct rtc_time *time)
 		now = plat->base_time;
 	}
 
-	rtc_to_tm(now + plat->offset, time);
-
-	return 0;
+	return rtc_to_tm(now + plat->offset, time);
 }
 
 static int sandbox_i2c_rtc_set(struct udevice *dev, const struct rtc_time *time)

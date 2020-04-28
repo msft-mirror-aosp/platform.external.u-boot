@@ -12,14 +12,10 @@
 #include <fdt.h>
 
 #if defined(CONFIG_SPL_NAND_RAW_ONLY)
-static int spl_nand_load_image(struct spl_image_info *spl_image,
+int spl_nand_load_image(struct spl_image_info *spl_image,
 			struct spl_boot_device *bootdev)
 {
 	nand_init();
-
-	printf("Loading U-Boot from 0x%08x (size 0x%08x) to 0x%08x\n",
-	       CONFIG_SYS_NAND_U_BOOT_OFFS, CONFIG_SYS_NAND_U_BOOT_SIZE,
-	       CONFIG_SYS_NAND_U_BOOT_DST);
 
 	nand_spl_load_image(CONFIG_SYS_NAND_U_BOOT_OFFS,
 			    CONFIG_SYS_NAND_U_BOOT_SIZE,
@@ -87,8 +83,8 @@ static int spl_nand_load_image(struct spl_image_info *spl_image,
 #endif
 	nand_init();
 
-	header = spl_get_load_buffer(0, sizeof(*header));
-
+	/*use CONFIG_SYS_TEXT_BASE as temporary storage area */
+	header = (struct image_header *)(CONFIG_SYS_TEXT_BASE);
 #ifdef CONFIG_SPL_OS_BOOT
 	if (!spl_start_uboot()) {
 		/*

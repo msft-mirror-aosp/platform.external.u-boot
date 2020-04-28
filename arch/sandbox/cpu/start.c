@@ -177,10 +177,9 @@ static int sandbox_cmdline_cb_memory(struct sandbox_state *state,
 
 	err = os_read_ram_buf(arg);
 	if (err) {
-		printf("Failed to read RAM buffer '%s': %d\n", arg, err);
+		printf("Failed to read RAM buffer\n");
 		return err;
 	}
-	state->ram_buf_read = true;
 
 	return 0;
 }
@@ -274,25 +273,6 @@ static int sandbox_cmdline_cb_verbose(struct sandbox_state *state,
 }
 SANDBOX_CMDLINE_OPT_SHORT(verbose, 'v', 0, "Show test output");
 
-static int sandbox_cmdline_cb_log_level(struct sandbox_state *state,
-					const char *arg)
-{
-	state->default_log_level = simple_strtol(arg, NULL, 10);
-
-	return 0;
-}
-SANDBOX_CMDLINE_OPT_SHORT(log_level, 'L', 1,
-			  "Set log level (0=panic, 7=debug)");
-
-static int sandbox_cmdline_cb_show_of_platdata(struct sandbox_state *state,
-					       const char *arg)
-{
-	state->show_of_platdata = true;
-
-	return 0;
-}
-SANDBOX_CMDLINE_OPT(show_of_platdata, 0, "Show of-platdata in SPL");
-
 int board_run_command(const char *cmdline)
 {
 	printf("## Commands are disabled. Please enable CONFIG_CMDLINE.\n");
@@ -302,22 +282,8 @@ int board_run_command(const char *cmdline)
 
 static void setup_ram_buf(struct sandbox_state *state)
 {
-	/* Zero the RAM buffer if we didn't read it, to keep valgrind happy */
-	if (!state->ram_buf_read)
-		memset(state->ram_buf, '\0', state->ram_size);
-
 	gd->arch.ram_buf = state->ram_buf;
 	gd->ram_size = state->ram_size;
-}
-
-void state_show(struct sandbox_state *state)
-{
-	char **p;
-
-	printf("Arguments:\n");
-	for (p = state->argv; *p; p++)
-		printf("%s ", *p);
-	printf("\n");
 }
 
 int main(int argc, char *argv[])
@@ -325,10 +291,6 @@ int main(int argc, char *argv[])
 	struct sandbox_state *state;
 	gd_t data;
 	int ret;
-
-	memset(&data, '\0', sizeof(data));
-	gd = &data;
-	gd->arch.text_base = os_find_text_base();
 
 	ret = state_init();
 	if (ret)
@@ -342,19 +304,16 @@ int main(int argc, char *argv[])
 	if (ret)
 		goto err;
 
+	/* Remove old memory file if required */
+	if (state->ram_buf_rm && state->ram_buf_fname)
+		os_unlink(state->ram_buf_fname);
+
+	memset(&data, '\0', sizeof(data));
+	gd = &data;
 #if CONFIG_VAL(SYS_MALLOC_F_LEN)
 	gd->malloc_base = CONFIG_MALLOC_F_ADDR;
 #endif
-#if CONFIG_IS_ENABLED(LOG)
-	gd->default_log_level = state->default_log_level;
-#endif
 	setup_ram_buf(state);
-
-	/*
-	 * Set up the relocation offset here, since sandbox symbols are always
-	 * relocated by the OS before sandbox is entered.
-	 */
-	gd->reloc_off = (ulong)gd->arch.text_base;
 
 	/* Do pre- and post-relocation init */
 	board_init_f(0);

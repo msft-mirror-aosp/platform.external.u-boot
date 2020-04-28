@@ -7,7 +7,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
 #include <netdev.h>
 #include <asm/mipsregs.h>
 #include "vct.h"

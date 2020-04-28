@@ -16,6 +16,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <asm/dma-mapping.h>
+#include <usb/lin_gadget_compat.h>
 #include <linux/bug.h>
 #include <linux/list.h>
 

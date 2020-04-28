@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <malloc.h>
 
 /* Size of the blocks written to the compressed file */
 #define BLOCK_SIZE 8

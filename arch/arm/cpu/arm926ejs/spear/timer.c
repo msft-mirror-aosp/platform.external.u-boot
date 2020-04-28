@@ -21,8 +21,6 @@ static struct misc_regs *const misc_regs_p =
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static ulong get_timer_masked(void);
-
 #define timestamp gd->arch.tbl
 #define lastdec gd->arch.lastinc
 
@@ -84,7 +82,7 @@ void __udelay(unsigned long usec)
 		;
 }
 
-static ulong get_timer_masked(void)
+ulong get_timer_masked(void)
 {
 	ulong now = READ_TIMER();
 
@@ -98,6 +96,11 @@ static ulong get_timer_masked(void)
 	lastdec = now;
 
 	return timestamp;
+}
+
+void udelay_masked(unsigned long usec)
+{
+	return udelay(usec);
 }
 
 /*

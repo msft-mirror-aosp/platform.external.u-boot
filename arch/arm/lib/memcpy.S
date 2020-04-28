@@ -59,7 +59,7 @@
 #endif
 ENTRY(memcpy)
 		cmp	r0, r1
-		bxeq	lr
+		moveq	pc, lr
 
 		enter	r4, lr
 
@@ -147,8 +147,7 @@ ENTRY(memcpy)
 		str1b	r0, r4, cs, abort=21f
 		str1b	r0, ip, cs, abort=21f
 
-		exit	r4, lr
-		bx	lr
+		exit	r4, pc
 
 9:		rsb	ip, ip, #4
 		cmp	ip, #2
@@ -257,8 +256,7 @@ ENTRY(memcpy)
 	.endm
 
 	.macro	copy_abort_end
-	ldmfd	sp!, {r4, lr}
-	bx	lr
+	ldmfd	sp!, {r4, pc}
 	.endm
 
 ENDPROC(memcpy)

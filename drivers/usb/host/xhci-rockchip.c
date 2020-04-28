@@ -167,6 +167,7 @@ static int xhci_usb_remove(struct udevice *dev)
 }
 
 static const struct udevice_id xhci_usb_ids[] = {
+	{ .compatible = "rockchip,rk3399-xhci" },
 	{ .compatible = "rockchip,rk3328-xhci" },
 	{ }
 };
@@ -186,6 +187,7 @@ U_BOOT_DRIVER(usb_xhci) = {
 };
 
 static const struct udevice_id usb_phy_ids[] = {
+	{ .compatible = "rockchip,rk3399-usb3-phy" },
 	{ .compatible = "rockchip,rk3328-usb3-phy" },
 	{ }
 };

@@ -478,5 +478,4 @@ U_BOOT_DRIVER(cpu_x86_model_206ax_drv) = {
 	.bind		= cpu_x86_bind,
 	.probe		= cpu_x86_model_206ax_probe,
 	.ops		= &cpu_x86_model_206ax_ops,
-	.flags		= DM_FLAG_PRE_RELOC,
 };

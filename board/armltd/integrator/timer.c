@@ -93,30 +93,6 @@ int timer_init (void)
 /*
  * timer without interrupts
  */
-
-/* converts the timer reading to U-Boot ticks	       */
-/* the timestamp is the number of ticks since reset    */
-static ulong get_timer_masked (void)
-{
-	/* get current count */
-	unsigned long long now = READ_TIMER;
-
-	if(now > lastdec) {
-		/* Must have wrapped */
-		total_count += lastdec + TIMER_LOAD_VAL + 1 - now;
-	} else {
-		total_count += lastdec - now;
-	}
-	lastdec	= now;
-
-	/* Reuse "now" */
-	now = total_count;
-	do_div(now, div_timer);
-	timestamp = now;
-
-	return timestamp;
-}
-
 ulong get_timer (ulong base_ticks)
 {
 	return get_timer_masked () - base_ticks;
@@ -137,6 +113,35 @@ void __udelay (unsigned long usec)
 	while (get_timer_masked () < tmo) {/* loop till event */
 		/*NOP*/;
 	}
+}
+
+/* converts the timer reading to U-Boot ticks	       */
+/* the timestamp is the number of ticks since reset    */
+ulong get_timer_masked (void)
+{
+	/* get current count */
+	unsigned long long now = READ_TIMER;
+
+	if(now > lastdec) {
+		/* Must have wrapped */
+		total_count += lastdec + TIMER_LOAD_VAL + 1 - now;
+	} else {
+		total_count += lastdec - now;
+	}
+	lastdec	= now;
+
+	/* Reuse "now" */
+	now = total_count;
+	do_div(now, div_timer);
+	timestamp = now;
+
+	return timestamp;
+}
+
+/* waits specified delay value and resets timestamp */
+void udelay_masked (unsigned long usec)
+{
+	udelay(usec);
 }
 
 /*

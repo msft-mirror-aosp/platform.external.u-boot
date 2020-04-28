@@ -16,6 +16,9 @@
 /* CPU Timer rate */
 #define CONFIG_SYS_MIPS_TIMER_FREQ	100000000
 
+/* Cache Configuration */
+#define CONFIG_SYS_MIPS_CACHE_MODE	CONF_CM_CACHABLE_NONCOHERENT
+
 /*----------------------------------------------------------------------
  * Memory Layout
  */
@@ -57,6 +60,7 @@
 /*-----------------------------------------------------------------------
  * Networking Configuration
  */
+#define CONFIG_MII
 #define CONFIG_PHY_SMSC
 #define CONFIG_SYS_RX_ETH_BUFFER	8
 #define CONFIG_NET_RETRY_COUNT		20

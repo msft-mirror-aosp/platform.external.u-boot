@@ -270,6 +270,12 @@ int print_cpuinfo(void)
 	return default_print_cpuinfo();
 }
 
+void reset_cpu(ulong addr)
+{
+	/* cold reset */
+	x86_full_reset();
+}
+
 static void quark_pcie_init(void)
 {
 	u32 val;

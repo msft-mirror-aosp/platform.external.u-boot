@@ -489,9 +489,7 @@ static int pcie_dw_mvebu_probe(struct udevice *dev)
 	 * using this GPIO.
 	 */
 	if (dm_gpio_is_valid(&reset_gpio)) {
-		dm_gpio_set_value(&reset_gpio, 1); /* assert */
-		mdelay(200);
-		dm_gpio_set_value(&reset_gpio, 0); /* de-assert */
+		dm_gpio_set_value(&reset_gpio, 1);
 		mdelay(200);
 	}
 #else

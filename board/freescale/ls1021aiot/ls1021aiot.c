@@ -11,6 +11,7 @@
 
 #include <asm/arch/ls102xa_devdis.h>
 #include <asm/arch/ls102xa_soc.h>
+#include <asm/arch/ls102xa_sata.h>
 #include <fsl_csu.h>
 #include <fsl_esdhc.h>
 #include <fsl_immap.h>
@@ -96,8 +97,6 @@ int dram_init(void)
 #if (!defined(CONFIG_SPL) || defined(CONFIG_SPL_BUILD))
 	ddrmc_init();
 #endif
-
-	erratum_a008850_post();
 
 	gd->ram_size = DDR_SIZE;
 	return 0;
@@ -207,6 +206,10 @@ int board_init(void)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
+#ifdef CONFIG_SCSI_AHCI_PLAT
+	ls1021a_sata_init();
+#endif
+
 	return 0;
 }
 #endif

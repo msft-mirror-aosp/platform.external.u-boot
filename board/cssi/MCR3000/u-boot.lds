@@ -19,6 +19,7 @@ SECTIONS
 		arch/powerpc/cpu/mpc8xx/start.o	(.text)
 		arch/powerpc/cpu/mpc8xx/traps.o	(.text*)
 		arch/powerpc/lib/built-in.o		(.text*)
+		board/cssi/MCR3000/built-in.o	(.text*)
 		drivers/net/built-in.o		(.text*)
 
 		. = DEFINED(env_offset) ? env_offset : .;
@@ -67,12 +68,6 @@ SECTIONS
 	__start___ex_table = .;
 	__ex_table : { *(__ex_table) }
 	__stop___ex_table = .;
-
-	/*
-	 * _end - This is end of u-boot.bin image.
-	 * dtb will be appended here to make u-boot-dtb.bin
-	 */
-	_end = .;
 
 	. = ALIGN(4096);
 	__init_begin = .;

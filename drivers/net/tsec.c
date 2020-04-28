@@ -78,30 +78,7 @@ static void tsec_configure_serdes(struct tsec_private *priv)
 			      0, TBI_CR, CONFIG_TSEC_TBICR_SETTINGS);
 }
 
-/* the 'way' for ethernet-CRC-32. Spliced in from Linux lib/crc32.c
- * and this is the ethernet-crc method needed for TSEC -- and perhaps
- * some other adapter -- hash tables
- */
-#define CRCPOLY_LE 0xedb88320
-static u32 ether_crc(size_t len, unsigned char const *p)
-{
-	int i;
-	u32 crc;
-
-	crc = ~0;
-	while (len--) {
-		crc ^= *p++;
-		for (i = 0; i < 8; i++)
-			crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY_LE : 0);
-	}
-	/* an reverse the bits, cuz of way they arrive -- last-first */
-	crc = (crc >> 16) | (crc << 16);
-	crc = (crc >> 8 & 0x00ff00ff) | (crc << 8 & 0xff00ff00);
-	crc = (crc >> 4 & 0x0f0f0f0f) | (crc << 4 & 0xf0f0f0f0);
-	crc = (crc >> 2 & 0x33333333) | (crc << 2 & 0xcccccccc);
-	crc = (crc >> 1 & 0x55555555) | (crc << 1 & 0xaaaaaaaa);
-	return crc;
-}
+#ifdef CONFIG_MCAST_TFTP
 
 /* CREDITS: linux gianfar driver, slightly adjusted... thanx. */
 
@@ -122,10 +99,9 @@ static u32 ether_crc(size_t len, unsigned char const *p)
  * the entry.
  */
 #ifndef CONFIG_DM_ETH
-static int tsec_mcast_addr(struct eth_device *dev, const u8 *mcast_mac,
-			   int join)
+static int tsec_mcast_addr(struct eth_device *dev, const u8 *mcast_mac, u8 set)
 #else
-static int tsec_mcast_addr(struct udevice *dev, const u8 *mcast_mac, int join)
+static int tsec_mcast_addr(struct udevice *dev, const u8 *mcast_mac, int set)
 #endif
 {
 	struct tsec_private *priv = (struct tsec_private *)dev->priv;
@@ -139,13 +115,14 @@ static int tsec_mcast_addr(struct udevice *dev, const u8 *mcast_mac, int join)
 
 	value = BIT(31 - whichbit);
 
-	if (join)
+	if (set)
 		setbits_be32(&regs->hash.gaddr0 + whichreg, value);
 	else
 		clrbits_be32(&regs->hash.gaddr0 + whichreg, value);
 
 	return 0;
 }
+#endif /* Multicast TFTP ? */
 
 /*
  * Initialized required registers to appropriate values, zeroing
@@ -259,8 +236,8 @@ static int tsec_send(struct udevice *dev, void *packet, int length)
 {
 	struct tsec_private *priv = (struct tsec_private *)dev->priv;
 	struct tsec __iomem *regs = priv->regs;
-	int result = 0;
 	u16 status;
+	int result = 0;
 	int i;
 
 	/* Find an empty buffer descriptor */
@@ -268,7 +245,7 @@ static int tsec_send(struct udevice *dev, void *packet, int length)
 	     in_be16(&priv->txbd[priv->tx_idx].status) & TXBD_READY;
 	     i++) {
 		if (i >= TOUT_LOOP) {
-			printf("%s: tsec: tx buffers full\n", dev->name);
+			debug("%s: tsec: tx buffers full\n", dev->name);
 			return result;
 		}
 	}
@@ -287,7 +264,7 @@ static int tsec_send(struct udevice *dev, void *packet, int length)
 	     in_be16(&priv->txbd[priv->tx_idx].status) & TXBD_READY;
 	     i++) {
 		if (i >= TOUT_LOOP) {
-			printf("%s: tsec: tx error\n", dev->name);
+			debug("%s: tsec: tx error\n", dev->name);
 			return result;
 		}
 	}
@@ -560,8 +537,6 @@ static int tsec_init(struct udevice *dev)
 	struct tsec_private *priv = (struct tsec_private *)dev->priv;
 #ifdef CONFIG_DM_ETH
 	struct eth_pdata *pdata = dev_get_platdata(dev);
-#else
-	struct eth_device *pdata = dev;
 #endif
 	struct tsec __iomem *regs = priv->regs;
 	u32 tempval;
@@ -582,12 +557,21 @@ static int tsec_init(struct udevice *dev)
 	 * order (BE), MACnADDR1 is set to 0xCDAB7856 and
 	 * MACnADDR2 is set to 0x34120000.
 	 */
+#ifndef CONFIG_DM_ETH
+	tempval = (dev->enetaddr[5] << 24) | (dev->enetaddr[4] << 16) |
+		  (dev->enetaddr[3] << 8)  |  dev->enetaddr[2];
+#else
 	tempval = (pdata->enetaddr[5] << 24) | (pdata->enetaddr[4] << 16) |
 		  (pdata->enetaddr[3] << 8)  |  pdata->enetaddr[2];
+#endif
 
 	out_be32(&regs->macstnaddr1, tempval);
 
+#ifndef CONFIG_DM_ETH
+	tempval = (dev->enetaddr[1] << 24) | (dev->enetaddr[0] << 16);
+#else
 	tempval = (pdata->enetaddr[1] << 24) | (pdata->enetaddr[0] << 16);
+#endif
 
 	out_be32(&regs->macstnaddr2, tempval);
 
@@ -701,9 +685,9 @@ static int init_phy(struct tsec_private *priv)
  */
 static int tsec_initialize(bd_t *bis, struct tsec_info_struct *tsec_info)
 {
-	struct tsec_private *priv;
 	struct eth_device *dev;
 	int i;
+	struct tsec_private *priv;
 
 	dev = (struct eth_device *)malloc(sizeof(*dev));
 
@@ -736,7 +720,9 @@ static int tsec_initialize(bd_t *bis, struct tsec_info_struct *tsec_info)
 	dev->halt = tsec_halt;
 	dev->send = tsec_send;
 	dev->recv = tsec_recv;
+#ifdef CONFIG_MCAST_TFTP
 	dev->mcast = tsec_mcast_addr;
+#endif
 
 	/* Tell U-Boot to get the addr from the env */
 	for (i = 0; i < 6; i++)
@@ -787,14 +773,12 @@ int tsec_standard_init(bd_t *bis)
 #else /* CONFIG_DM_ETH */
 int tsec_probe(struct udevice *dev)
 {
-	struct eth_pdata *pdata = dev_get_platdata(dev);
 	struct tsec_private *priv = dev_get_priv(dev);
-	struct ofnode_phandle_args phandle_args;
-	u32 tbiaddr = CONFIG_SYS_TBIPA_VALUE;
+	struct eth_pdata *pdata = dev_get_platdata(dev);
 	struct fsl_pq_mdio_info mdio_info;
-	const char *phy_mode;
-	fdt_addr_t reg;
+	struct ofnode_phandle_args phandle_args;
 	ofnode parent;
+	const char *phy_mode;
 	int ret;
 
 	pdata->iobase = (phys_addr_t)dev_read_addr(dev);
@@ -802,7 +786,7 @@ int tsec_probe(struct udevice *dev)
 
 	if (dev_read_phandle_with_args(dev, "phy-handle", NULL, 0, 0,
 				       &phandle_args)) {
-		printf("phy-handle does not exist under tsec %s\n", dev->name);
+		debug("phy-handle does not exist under tsec %s\n", dev->name);
 		return -ENOENT;
 	} else {
 		int reg = ofnode_read_u32_default(phandle_args.node, "reg", 0);
@@ -811,27 +795,29 @@ int tsec_probe(struct udevice *dev)
 	}
 
 	parent = ofnode_get_parent(phandle_args.node);
-	if (!ofnode_valid(parent)) {
-		printf("No parent node for PHY?\n");
+	if (ofnode_valid(parent)) {
+		int reg = ofnode_get_addr_index(parent, 0);
+
+		priv->phyregs_sgmii = (struct tsec_mii_mng *)reg;
+	} else {
+		debug("No parent node for PHY?\n");
 		return -ENOENT;
 	}
 
-	reg = ofnode_get_addr_index(parent, 0);
-	priv->phyregs_sgmii = (struct tsec_mii_mng *)
-			(reg + TSEC_MDIO_REGS_OFFSET);
-
-	ret = dev_read_phandle_with_args(dev, "tbi-handle", NULL, 0, 0,
-					 &phandle_args);
-	if (ret == 0)
-		ofnode_read_u32(phandle_args.node, "reg", &tbiaddr);
-
-	priv->tbiaddr = tbiaddr;
+	if (dev_read_phandle_with_args(dev, "tbi-handle", NULL, 0, 0,
+				       &phandle_args)) {
+		priv->tbiaddr = CONFIG_SYS_TBIPA_VALUE;
+	} else {
+		int reg = ofnode_read_u32_default(phandle_args.node, "reg",
+						  CONFIG_SYS_TBIPA_VALUE);
+		priv->tbiaddr = reg;
+	}
 
 	phy_mode = dev_read_prop(dev, "phy-connection-type", NULL);
 	if (phy_mode)
 		pdata->phy_interface = phy_get_interface_by_name(phy_mode);
 	if (pdata->phy_interface == -1) {
-		printf("Invalid PHY interface '%s'\n", phy_mode);
+		debug("Invalid PHY interface '%s'\n", phy_mode);
 		return -EINVAL;
 	}
 	priv->interface = pdata->phy_interface;
@@ -876,11 +862,13 @@ static const struct eth_ops tsec_ops = {
 	.recv = tsec_recv,
 	.free_pkt = tsec_free_pkt,
 	.stop = tsec_halt,
+#ifdef CONFIG_MCAST_TFTP
 	.mcast = tsec_mcast_addr,
+#endif
 };
 
 static const struct udevice_id tsec_ids[] = {
-	{ .compatible = "fsl,etsec2" },
+	{ .compatible = "fsl,tsec" },
 	{ }
 };
 

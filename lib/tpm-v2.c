@@ -10,7 +10,7 @@
 #include <tpm-v2.h>
 #include "tpm-utils.h"
 
-u32 tpm2_startup(struct udevice *dev, enum tpm2_startup_types mode)
+u32 tpm2_startup(enum tpm2_startup_types mode)
 {
 	const u8 command_v2[12] = {
 		tpm_u16(TPM2_ST_NO_SESSIONS),
@@ -24,14 +24,14 @@ u32 tpm2_startup(struct udevice *dev, enum tpm2_startup_types mode)
 	 * Note TPM2_Startup command will return RC_SUCCESS the first time,
 	 * but will return RC_INITIALIZE otherwise.
 	 */
-	ret = tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	ret = tpm_sendrecv_command(command_v2, NULL, NULL);
 	if (ret && ret != TPM2_RC_INITIALIZE)
 		return ret;
 
 	return 0;
 }
 
-u32 tpm2_self_test(struct udevice *dev, enum tpm2_yes_no full_test)
+u32 tpm2_self_test(enum tpm2_yes_no full_test)
 {
 	const u8 command_v2[12] = {
 		tpm_u16(TPM2_ST_NO_SESSIONS),
@@ -40,11 +40,10 @@ u32 tpm2_self_test(struct udevice *dev, enum tpm2_yes_no full_test)
 		full_test,
 	};
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }
 
-u32 tpm2_clear(struct udevice *dev, u32 handle, const char *pw,
-	       const ssize_t pw_sz)
+u32 tpm2_clear(u32 handle, const char *pw, const ssize_t pw_sz)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
 		tpm_u16(TPM2_ST_SESSIONS),	/* TAG */
@@ -76,10 +75,10 @@ u32 tpm2_clear(struct udevice *dev, u32 handle, const char *pw,
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }
 
-u32 tpm2_pcr_extend(struct udevice *dev, u32 index, const uint8_t *digest)
+u32 tpm2_pcr_extend(u32 index, const uint8_t *digest)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
 		tpm_u16(TPM2_ST_SESSIONS),	/* TAG */
@@ -114,11 +113,11 @@ u32 tpm2_pcr_extend(struct udevice *dev, u32 index, const uint8_t *digest)
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2,	NULL, NULL);
 }
 
-u32 tpm2_pcr_read(struct udevice *dev, u32 idx, unsigned int idx_min_sz,
-		  void *data, unsigned int *updates)
+u32 tpm2_pcr_read(u32 idx, unsigned int idx_min_sz, void *data,
+		  unsigned int *updates)
 {
 	u8 idx_array_sz = max(idx_min_sz, DIV_ROUND_UP(idx, 8));
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
@@ -143,7 +142,7 @@ u32 tpm2_pcr_read(struct udevice *dev, u32 idx, unsigned int idx_min_sz,
 			     17 + pcr_sel_idx, pcr_sel_bit))
 		return TPM_LIB_ERROR;
 
-	ret = tpm_sendrecv_command(dev, command_v2, response, &response_len);
+	ret = tpm_sendrecv_command(command_v2, response, &response_len);
 	if (ret)
 		return ret;
 
@@ -159,8 +158,8 @@ u32 tpm2_pcr_read(struct udevice *dev, u32 idx, unsigned int idx_min_sz,
 	return 0;
 }
 
-u32 tpm2_get_capability(struct udevice *dev, u32 capability, u32 property,
-			void *buf, size_t prop_count)
+u32 tpm2_get_capability(u32 capability, u32 property, void *buf,
+			size_t prop_count)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
 		tpm_u16(TPM2_ST_NO_SESSIONS),		/* TAG */
@@ -176,7 +175,7 @@ u32 tpm2_get_capability(struct udevice *dev, u32 capability, u32 property,
 	unsigned int properties_off;
 	int ret;
 
-	ret = tpm_sendrecv_command(dev, command_v2, response, &response_len);
+	ret = tpm_sendrecv_command(command_v2, response, &response_len);
 	if (ret)
 		return ret;
 
@@ -192,7 +191,7 @@ u32 tpm2_get_capability(struct udevice *dev, u32 capability, u32 property,
 	return 0;
 }
 
-u32 tpm2_dam_reset(struct udevice *dev, const char *pw, const ssize_t pw_sz)
+u32 tpm2_dam_reset(const char *pw, const ssize_t pw_sz)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
 		tpm_u16(TPM2_ST_SESSIONS),	/* TAG */
@@ -224,12 +223,11 @@ u32 tpm2_dam_reset(struct udevice *dev, const char *pw, const ssize_t pw_sz)
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }
 
-u32 tpm2_dam_parameters(struct udevice *dev, const char *pw,
-			const ssize_t pw_sz, unsigned int max_tries,
-			unsigned int recovery_time,
+u32 tpm2_dam_parameters(const char *pw, const ssize_t pw_sz,
+			unsigned int max_tries, unsigned int recovery_time,
 			unsigned int lockout_recovery)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
@@ -273,12 +271,11 @@ u32 tpm2_dam_parameters(struct udevice *dev, const char *pw,
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }
 
-int tpm2_change_auth(struct udevice *dev, u32 handle, const char *newpw,
-		     const ssize_t newpw_sz, const char *oldpw,
-		     const ssize_t oldpw_sz)
+int tpm2_change_auth(u32 handle, const char *newpw, const ssize_t newpw_sz,
+		     const char *oldpw, const ssize_t oldpw_sz)
 {
 	unsigned int offset = 27;
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
@@ -318,11 +315,11 @@ int tpm2_change_auth(struct udevice *dev, u32 handle, const char *newpw,
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }
 
-u32 tpm2_pcr_setauthpolicy(struct udevice *dev, const char *pw,
-			   const ssize_t pw_sz, u32 index, const char *key)
+u32 tpm2_pcr_setauthpolicy(const char *pw, const ssize_t pw_sz, u32 index,
+			   const char *key)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
 		tpm_u16(TPM2_ST_SESSIONS),	/* TAG */
@@ -373,12 +370,11 @@ u32 tpm2_pcr_setauthpolicy(struct udevice *dev, const char *pw,
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }
 
-u32 tpm2_pcr_setauthvalue(struct udevice *dev, const char *pw,
-			  const ssize_t pw_sz, u32 index, const char *key,
-			  const ssize_t key_sz)
+u32 tpm2_pcr_setauthvalue(const char *pw, const ssize_t pw_sz, u32 index,
+			  const char *key, const ssize_t key_sz)
 {
 	u8 command_v2[COMMAND_BUFFER_SIZE] = {
 		tpm_u16(TPM2_ST_SESSIONS),	/* TAG */
@@ -419,5 +415,5 @@ u32 tpm2_pcr_setauthvalue(struct udevice *dev, const char *pw,
 	if (ret)
 		return TPM_LIB_ERROR;
 
-	return tpm_sendrecv_command(dev, command_v2, NULL, NULL);
+	return tpm_sendrecv_command(command_v2, NULL, NULL);
 }

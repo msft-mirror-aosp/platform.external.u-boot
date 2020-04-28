@@ -4,9 +4,10 @@
  */
 
 #include <common.h>
+#include <inttypes.h>
 #include <config.h>
 #include <dm.h>
-#include <env.h>
+#include <environment.h>
 #include <efi_loader.h>
 #include <fdt_support.h>
 #include <fdt_simplefb.h>
@@ -68,7 +69,14 @@ struct msg_get_clock_rate {
 #endif
 
 /*
- * https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
+ * http://raspberryalphaomega.org.uk/2013/02/06/automatic-raspberry-pi-board-revision-detection-model-a-b1-and-b2/
+ * http://www.raspberrypi.org/forums/viewtopic.php?f=63&t=32733
+ * http://git.drogon.net/?p=wiringPi;a=blob;f=wiringPi/wiringPi.c;h=503151f61014418b9c42f4476a6086f75cd4e64b;hb=refs/heads/master#l922
+ *
+ * In http://lists.denx.de/pipermail/u-boot/2016-January/243752.html
+ * ("[U-Boot] [PATCH] rpi: fix up Model B entries") Dom Cobley at the RPi
+ * Foundation stated that the following source was accurate:
+ * https://github.com/AndrewFromMelbourne/raspberry_pi_revision
  */
 struct rpi_model {
 	const char *name;
@@ -136,21 +144,6 @@ static const struct rpi_model rpi_models_new_scheme[] = {
 	[0xD] = {
 		"3 Model B+",
 		DTB_DIR "bcm2837-rpi-3-b-plus.dtb",
-		true,
-	},
-	[0xE] = {
-		"3 Model A+",
-		DTB_DIR "bcm2837-rpi-3-a-plus.dtb",
-		false,
-	},
-	[0x10] = {
-		"Compute Module 3+",
-		DTB_DIR "bcm2837-rpi-cm3.dtb",
-		false,
-	},
-	[0x11] = {
-		"4 Model B",
-		DTB_DIR "bcm2711-rpi-4-b.dtb",
 		true,
 	},
 };
@@ -249,8 +242,7 @@ static uint32_t rev_type;
 static const struct rpi_model *model;
 
 #ifdef CONFIG_ARM64
-#ifndef CONFIG_BCM2711
-static struct mm_region bcm283x_mem_map[] = {
+static struct mm_region bcm2837_mem_map[] = {
 	{
 		.virt = 0x00000000UL,
 		.phys = 0x00000000UL,
@@ -269,28 +261,8 @@ static struct mm_region bcm283x_mem_map[] = {
 		0,
 	}
 };
-#else
-static struct mm_region bcm283x_mem_map[] = {
-	{
-		.virt = 0x00000000UL,
-		.phys = 0x00000000UL,
-		.size = 0xfe000000UL,
-		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-			 PTE_BLOCK_INNER_SHARE
-	}, {
-		.virt = 0xfe000000UL,
-		.phys = 0xfe000000UL,
-		.size = 0x01800000UL,
-		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
-			 PTE_BLOCK_NON_SHARE |
-			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
-	}, {
-		/* List terminator */
-		0,
-	}
-};
-#endif
-struct mm_region *mem_map = bcm283x_mem_map;
+
+struct mm_region *mem_map = bcm2837_mem_map;
 #endif
 
 int dram_init(void)
@@ -311,16 +283,6 @@ int dram_init(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_OF_BOARD
-#ifdef CONFIG_BCM2711
-int dram_init_banksize(void)
-{
-	return fdtdec_decode_ram_size(gd->fdt_blob, NULL, 0, NULL,
-				     (phys_size_t *)&gd->ram_size, gd->bd);
-}
-#endif
-#endif
 
 static void set_fdtfile(void)
 {
@@ -422,7 +384,7 @@ static void set_serial_number(void)
 		return;
 	}
 
-	snprintf(serial_string, sizeof(serial_string), "%016llx",
+	snprintf(serial_string, sizeof(serial_string), "%016" PRIx64,
 		 msg->get_board_serial.body.resp.serial);
 	env_set("serial#", serial_string);
 }

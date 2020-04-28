@@ -115,14 +115,14 @@ MV_DRAM_MODES *ddr3_get_static_ddr_mode(void)
 	return &ds414_ddr_modes[0];
 }
 
-MV_BIN_SERDES_CFG *board_serdes_cfg_get(void)
+MV_BIN_SERDES_CFG *board_serdes_cfg_get(u8 pex_mode)
 {
 	return &ds414_serdes_cfg[0];
 }
 
 u8 board_sat_r_get(u8 dev_num, u8 reg)
 {
-	return 0xf;	/* All PEX ports support PCIe Gen2 */
+	return (0x1 << 1 | 1);
 }
 
 int board_early_init_f(void)

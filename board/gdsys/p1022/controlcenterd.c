@@ -23,7 +23,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
 #include <pci.h>
 #include <asm/processor.h>
 #include <asm/mmu.h>

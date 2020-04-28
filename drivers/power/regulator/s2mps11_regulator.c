@@ -346,8 +346,6 @@ static int s2mps11_ldo_hex2volt(int ldo, int hex)
 	case 11:
 	case 22:
 	case 23:
-	case 27:
-	case 35:
 		uV = hex * S2MPS11_LDO_STEP + S2MPS11_LDO_UV_MIN;
 		break;
 	default:
@@ -368,8 +366,6 @@ static int s2mps11_ldo_volt2hex(int ldo, int uV)
 	case 11:
 	case 22:
 	case 23:
-	case 27:
-	case 35:
 		hex = (uV - S2MPS11_LDO_UV_MIN) / S2MPS11_LDO_STEP;
 		break;
 	default:
@@ -551,16 +547,7 @@ static int ldo_get_enable(struct udevice *dev)
 
 static int ldo_set_enable(struct udevice *dev, bool enable)
 {
-	int ret;
-
-	ret = s2mps11_ldo_enable(dev, PMIC_OP_SET, &enable);
-	if (ret)
-		return ret;
-
-	/* Wait the "enable delay" for voltage to start to rise */
-	udelay(15);
-
-	return 0;
+	return s2mps11_ldo_enable(dev, PMIC_OP_SET, &enable);
 }
 
 static int ldo_get_mode(struct udevice *dev)

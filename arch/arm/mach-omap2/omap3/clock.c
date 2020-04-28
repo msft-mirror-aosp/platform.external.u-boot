@@ -17,6 +17,7 @@
 #include <asm/arch/clocks_omap3.h>
 #include <asm/arch/mem.h>
 #include <asm/arch/sys_proto.h>
+#include <environment.h>
 #include <command.h>
 
 /******************************************************************************
@@ -749,23 +750,23 @@ void per_clocks_enable(void)
 	setbits_le32(&prcm_base->iclken_per, 0x00000800);
 #endif
 
-#if defined(CONFIG_OMAP3_GPIO_2)
+#if (CONFIG_IS_ENABLED(OMAP3_GPIO_2) || CONFIG_IS_ENABLED(CMD_GPIO))
 	setbits_le32(&prcm_base->fclken_per, 0x00002000);
 	setbits_le32(&prcm_base->iclken_per, 0x00002000);
 #endif
-#if defined(CONFIG_OMAP3_GPIO_3)
+#if (CONFIG_IS_ENABLED(OMAP3_GPIO_3) || CONFIG_IS_ENABLED(CMD_GPIO))
 	setbits_le32(&prcm_base->fclken_per, 0x00004000);
 	setbits_le32(&prcm_base->iclken_per, 0x00004000);
 #endif
-#if defined(CONFIG_OMAP3_GPIO_4)
+#if (CONFIG_IS_ENABLED(OMAP3_GPIO_4) || CONFIG_IS_ENABLED(CMD_GPIO))
 	setbits_le32(&prcm_base->fclken_per, 0x00008000);
 	setbits_le32(&prcm_base->iclken_per, 0x00008000);
 #endif
-#if defined(CONFIG_OMAP3_GPIO_5)
+#if (CONFIG_IS_ENABLED(OMAP3_GPIO_5) || CONFIG_IS_ENABLED(CMD_GPIO))
 	setbits_le32(&prcm_base->fclken_per, 0x00010000);
 	setbits_le32(&prcm_base->iclken_per, 0x00010000);
 #endif
-#if defined(CONFIG_OMAP3_GPIO_6)
+#if (CONFIG_IS_ENABLED(OMAP3_GPIO_6) || CONFIG_IS_ENABLED(CMD_GPIO))
 	setbits_le32(&prcm_base->fclken_per, 0x00020000);
 	setbits_le32(&prcm_base->iclken_per, 0x00020000);
 #endif

@@ -9,8 +9,7 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <linux/stddef.h>
 #include <search.h>
 #include <errno.h>
@@ -59,18 +58,22 @@ char *env_get_default(const char *name)
 	return ret_val;
 }
 
-void env_set_default(const char *s, int flags)
+void set_default_env(const char *s)
 {
+	int flags = 0;
+
 	if (sizeof(default_environment) > ENV_SIZE) {
 		puts("*** Error - default environment is too large\n\n");
 		return;
 	}
 
 	if (s) {
-		if ((flags & H_INTERACTIVE) == 0) {
+		if (*s == '!') {
 			printf("*** Warning - %s, "
-				"using default environment\n\n", s);
+				"using default environment\n\n",
+				s + 1);
 		} else {
+			flags = H_INTERACTIVE;
 			puts(s);
 		}
 	} else {
@@ -80,8 +83,7 @@ void env_set_default(const char *s, int flags)
 	if (himport_r(&env_htab, (char *)default_environment,
 			sizeof(default_environment), '\0', flags, 0,
 			0, NULL) == 0)
-		pr_err("## Error: Environment import failed: errno = %d\n",
-		       errno);
+		pr_err("Environment import failed: errno = %d\n", errno);
 
 	gd->flags |= GD_FLG_ENV_READY;
 	gd->flags |= GD_FLG_ENV_DEFAULT;
@@ -89,16 +91,15 @@ void env_set_default(const char *s, int flags)
 
 
 /* [re]set individual variables to their value in the default environment */
-int env_set_default_vars(int nvars, char * const vars[], int flags)
+int set_default_vars(int nvars, char * const vars[])
 {
 	/*
 	 * Special use-case: import from default environment
 	 * (and use \0 as a separator)
 	 */
-	flags |= H_NOCLEAR;
 	return himport_r(&env_htab, (const char *)default_environment,
 				sizeof(default_environment), '\0',
-				flags, 0, nvars, vars);
+				H_NOCLEAR | H_INTERACTIVE, 0, nvars, vars);
 }
 
 /*
@@ -115,8 +116,8 @@ int env_import(const char *buf, int check)
 		memcpy(&crc, &ep->crc, sizeof(crc));
 
 		if (crc32(0, ep->data, ENV_SIZE) != crc) {
-			env_set_default("bad CRC", 0);
-			return -ENOMSG; /* needed for env_load() */
+			set_default_env("!bad CRC");
+			return -EIO;
 		}
 	}
 
@@ -128,7 +129,7 @@ int env_import(const char *buf, int check)
 
 	pr_err("Cannot import environment: errno = %d\n", errno);
 
-	env_set_default("import failed", 0);
+	set_default_env("!import failed");
 
 	return -EIO;
 }
@@ -153,7 +154,7 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 	}
 
 	if (buf1_read_fail && buf2_read_fail) {
-		env_set_default("bad env area", 0);
+		set_default_env("!bad env area");
 		return -EIO;
 	} else if (!buf1_read_fail && buf2_read_fail) {
 		gd->env_valid = ENV_VALID;
@@ -169,8 +170,8 @@ int env_import_redund(const char *buf1, int buf1_read_fail,
 			tmp_env2->crc;
 
 	if (!crc1_ok && !crc2_ok) {
-		env_set_default("bad CRC", 0);
-		return -ENOMSG; /* needed for env_load() */
+		set_default_env("!bad CRC");
+		return -EIO;
 	} else if (crc1_ok && !crc2_ok) {
 		gd->env_valid = ENV_VALID;
 	} else if (!crc1_ok && crc2_ok) {
@@ -231,86 +232,42 @@ void env_relocate(void)
 	if (gd->env_valid == ENV_INVALID) {
 #if defined(CONFIG_ENV_IS_NOWHERE) || defined(CONFIG_SPL_BUILD)
 		/* Environment not changable */
-		env_set_default(NULL, 0);
+		set_default_env(NULL);
 #else
 		bootstage_error(BOOTSTAGE_ID_NET_CHECKSUM);
-		env_set_default("bad CRC", 0);
+		set_default_env("!bad CRC");
 #endif
 	} else {
 		env_load();
 	}
 }
 
-#ifdef CONFIG_AUTO_COMPLETE
-int env_complete(char *var, int maxv, char *cmdv[], int bufsz, char *buf,
-		 bool dollar_comp)
+#if defined(CONFIG_AUTO_COMPLETE) && !defined(CONFIG_SPL_BUILD)
+int env_complete(char *var, int maxv, char *cmdv[], int bufsz, char *buf)
 {
-	struct env_entry *match;
+	ENTRY *match;
 	int found, idx;
-
-	if (dollar_comp) {
-		/*
-		 * When doing $ completion, the first character should
-		 * obviously be a '$'.
-		 */
-		if (var[0] != '$')
-			return 0;
-
-		var++;
-
-		/*
-		 * The second one, if present, should be a '{', as some
-		 * configuration of the u-boot shell expand ${var} but not
-		 * $var.
-		 */
-		if (var[0] == '{')
-			var++;
-		else if (var[0] != '\0')
-			return 0;
-	}
 
 	idx = 0;
 	found = 0;
 	cmdv[0] = NULL;
 
-
 	while ((idx = hmatch_r(var, idx, &match, &env_htab))) {
 		int vallen = strlen(match->key) + 1;
 
-		if (found >= maxv - 2 ||
-		    bufsz < vallen + (dollar_comp ? 3 : 0))
+		if (found >= maxv - 2 || bufsz < vallen)
 			break;
 
 		cmdv[found++] = buf;
-
-		/* Add the '${' prefix to each var when doing $ completion. */
-		if (dollar_comp) {
-			strcpy(buf, "${");
-			buf += 2;
-			bufsz -= 3;
-		}
-
 		memcpy(buf, match->key, vallen);
 		buf += vallen;
 		bufsz -= vallen;
-
-		if (dollar_comp) {
-			/*
-			 * This one is a bit odd: vallen already contains the
-			 * '\0' character but we need to add the '}' suffix,
-			 * hence the buf - 1 here. strcpy() will add the '\0'
-			 * character just after '}'. buf is then incremented
-			 * to account for the extra '}' we just added.
-			 */
-			strcpy(buf - 1, "}");
-			buf++;
-		}
 	}
 
 	qsort(cmdv, found, sizeof(cmdv[0]), strcmp_compar);
 
 	if (idx)
-		cmdv[found++] = dollar_comp ? "${...}" : "...";
+		cmdv[found++] = "...";
 
 	cmdv[found] = NULL;
 	return found;

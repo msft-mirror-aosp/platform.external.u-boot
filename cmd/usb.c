@@ -316,18 +316,26 @@ static struct usb_device *usb_find_device(int devnum)
 	return NULL;
 }
 
-static inline const char *portspeed(int speed)
+static inline char *portspeed(int speed)
 {
+	char *speed_str;
+
 	switch (speed) {
 	case USB_SPEED_SUPER:
-		return "5 Gb/s";
+		speed_str = "5 Gb/s";
+		break;
 	case USB_SPEED_HIGH:
-		return "480 Mb/s";
+		speed_str = "480 Mb/s";
+		break;
 	case USB_SPEED_LOW:
-		return "1.5 Mb/s";
+		speed_str = "1.5 Mb/s";
+		break;
 	default:
-		return "12 Mb/s";
+		speed_str = "12 Mb/s";
+		break;
 	}
+
+	return speed_str;
 }
 
 /* shows the device tree recursively */

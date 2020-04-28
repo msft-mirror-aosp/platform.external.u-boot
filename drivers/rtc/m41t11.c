@@ -29,6 +29,8 @@
 #endif
 */
 
+#if defined(CONFIG_SYS_I2C_RTC_ADDR) && defined(CONFIG_CMD_DATE)
+
 /* ------------------------------------------------------------------------- */
 /*
   these are simple defines for the chip local to here so they aren't too
@@ -165,3 +167,4 @@ void rtc_reset (void)
 	val = val & 0x3F;/*turn off freq test keep calibration*/
 	i2c_write(CONFIG_SYS_I2C_RTC_ADDR, RTC_CONTROL_ADDR, 1, &val, 1);
 }
+#endif

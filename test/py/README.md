@@ -29,7 +29,6 @@ tests. Similar package names should exist in other distributions.
 | -------------- | ----------------------------- |
 | python         | 2.7.5-5ubuntu3                |
 | python-pytest  | 2.5.1-1                       |
-| python-subunit | -                             |
 | gdisk          | 0.8.8-1ubuntu0.1              |
 | dfu-util       | 0.5-1                         |
 | dtc            | 1.4.0+dfsg-1                  |
@@ -310,7 +309,6 @@ instances of:
 
 - `buildconfig.get(...`
 - `@pytest.mark.buildconfigspec(...`
-- `@pytest.mark.notbuildconfigspec(...`
 
 ### Complete invocation example
 

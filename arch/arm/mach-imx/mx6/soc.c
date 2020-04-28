@@ -95,11 +95,6 @@ u32 get_cpu_rev(void)
 			type = MXC_CPU_MX6DP;
 	}
 	reg &= 0xff;		/* mx6 silicon revision */
-
-	/* For 6DQ, the value 0x00630005 is Silicon revision 1.3*/
-	if (((type == MXC_CPU_MX6Q) || (type == MXC_CPU_MX6D)) && (reg == 0x5))
-		reg = 0x3;
-
 	return (type << 12) | (reg + (0x10 * (major + 1)));
 }
 
@@ -553,10 +548,8 @@ const struct boot_mode soc_boot_modes[] = {
 
 void reset_misc(void)
 {
-#ifndef CONFIG_SPL_BUILD
-#if defined(CONFIG_VIDEO_MXS) && !defined(CONFIG_DM_VIDEO)
+#ifdef CONFIG_VIDEO_MXS
 	lcdif_power_down();
-#endif
 #endif
 }
 
@@ -656,22 +649,9 @@ void imx_setup_hdmi(void)
 }
 #endif
 
-
-/*
- * gpr_init() function is common for boards using MX6S, MX6DL, MX6D,
- * MX6Q and MX6QP processors
- */
 void gpr_init(void)
 {
 	struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
-
-	/*
-	 * If this function is used in a common MX6 spl implementation
-	 * we have to ensure that it is only called for suitable cpu types,
-	 * otherwise it breaks hardware parts like enet1, can1, can2, etc.
-	 */
-	if (!is_mx6dqp() && !is_mx6dq() && !is_mx6sdl())
-		return;
 
 	/* enable AXI cache for VDOA/VPU/IPU */
 	writel(0xF00000CF, &iomux->gpr[4]);

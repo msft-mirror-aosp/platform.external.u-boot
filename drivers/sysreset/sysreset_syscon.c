@@ -23,10 +23,6 @@ struct syscon_reboot_priv {
 static int syscon_reboot_request(struct udevice *dev, enum sysreset_t type)
 {
 	struct syscon_reboot_priv *priv = dev_get_priv(dev);
-	ulong driver_data = dev_get_driver_data(dev);
-
-	if (type != driver_data)
-		return -EPROTONOSUPPORT;
 
 	regmap_write(priv->regmap, priv->offset, priv->mask);
 
@@ -39,10 +35,19 @@ static struct sysreset_ops syscon_reboot_ops = {
 
 int syscon_reboot_probe(struct udevice *dev)
 {
+	struct udevice *syscon;
 	struct syscon_reboot_priv *priv = dev_get_priv(dev);
+	int err;
 
-	priv->regmap = syscon_regmap_lookup_by_phandle(dev, "regmap");
-	if (IS_ERR(priv->regmap)) {
+	err = uclass_get_device_by_phandle(UCLASS_SYSCON, dev,
+					   "regmap", &syscon);
+	if (err) {
+		pr_err("unable to find syscon device\n");
+		return err;
+	}
+
+	priv->regmap = syscon_get_regmap(syscon);
+	if (!priv->regmap) {
 		pr_err("unable to find regmap\n");
 		return -ENODEV;
 	}
@@ -54,8 +59,7 @@ int syscon_reboot_probe(struct udevice *dev)
 }
 
 static const struct udevice_id syscon_reboot_ids[] = {
-	{ .compatible = "syscon-reboot", .data = SYSRESET_COLD },
-	{ .compatible = "syscon-poweroff", .data = SYSRESET_POWER_OFF },
+	{ .compatible = "syscon-reboot" },
 	{ /* sentinel */ }
 };
 

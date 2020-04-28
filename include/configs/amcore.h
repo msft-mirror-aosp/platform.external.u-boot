@@ -30,6 +30,8 @@
 
 /* undef to save memory	*/
 
+#define CONFIG_MX_CYCLIC		1 /* enable mdc/mwc commands	*/
+
 #define CONFIG_SYS_LOAD_ADDR		0x20000	/* default load address */
 
 #define CONFIG_SYS_MEMTEST_START	0x0
@@ -56,6 +58,9 @@
 #define CONFIG_SYS_MAX_FLASH_SECT	1024
 #define CONFIG_SYS_FLASH_ERASE_TOUT	1000
 
+#define CONFIG_SYS_FLASH_CFI
+#define CONFIG_FLASH_CFI_DRIVER
+#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE
 /* amcore design has flash data bytes wired swapped */
 #define CONFIG_SYS_WRITE_SWAPPED_DATA
 /* reserve 128-4KB */

@@ -11,6 +11,8 @@
 #include <common.h>
 #include <command.h>
 
+#if (defined(CONFIG_CMD_DATE))
+
 #include <asm/arch/s3c24x0_cpu.h>
 
 #include <rtc.h>
@@ -147,3 +149,5 @@ void rtc_reset(void)
 	writeb((readb(&rtc->rtccon) & ~0x06) | 0x08, &rtc->rtccon);
 	writeb(readb(&rtc->rtccon) & ~(0x08 | 0x01), &rtc->rtccon);
 }
+
+#endif

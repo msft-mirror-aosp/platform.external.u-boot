@@ -16,11 +16,19 @@
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(10 * 1024 * 1024)
 
+#define CONFIG_MISC_INIT_R
 #define CONFIG_USBD_HS
 #define CONFIG_NETCONSOLE
 
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE	       UART2_BASE
+
+#ifdef CONFIG_CMD_SF
+#define CONFIG_SF_DEFAULT_BUS  0
+#define CONFIG_SF_DEFAULT_CS   0
+#define CONFIG_SF_DEFAULT_SPEED 25000000
+#define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)
+#endif
 
 /* I2C Configs */
 #define CONFIG_SYS_I2C
@@ -46,6 +54,7 @@
 #endif
 
 #define CONFIG_FEC_MXC
+#define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_XCV_TYPE		RGMII
 #define CONFIG_ETHPRIME			"FEC"
@@ -58,6 +67,7 @@
 #define CONFIG_MXC_USB_FLAGS	0
 
 /* Framebuffer and LCD */
+#define CONFIG_VIDEO_IPUV3
 #define CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_SPLASH_SCREEN_ALIGN
@@ -66,6 +76,8 @@
 #define CONFIG_BMP_16BPP
 #define CONFIG_IMX_HDMI
 #define CONFIG_IMX_VIDEO_SKIP
+
+#define CONFIG_PREBOOT                 ""
 
 #ifdef CONFIG_CMD_MMC
 #define DISTRO_BOOT_DEV_MMC(func) func(MMC, mmc, 0) func(MMC, mmc, 1)
@@ -135,6 +147,7 @@
 #define CONFIG_SYS_MEMTEST_SCRATCH     0x10800000
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS	       1
 #define PHYS_SDRAM		       MMDC0_ARB_BASE_ADDR
 
 #define CONFIG_SYS_SDRAM_BASE	       PHYS_SDRAM
@@ -155,6 +168,10 @@
 #elif defined(CONFIG_ENV_IS_IN_SPI_FLASH)
 #define CONFIG_ENV_OFFSET		(768 * 1024)
 #define CONFIG_ENV_SECT_SIZE		(8 * 1024)
+#define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
+#define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
+#define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
+#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
 #endif
 
 /*

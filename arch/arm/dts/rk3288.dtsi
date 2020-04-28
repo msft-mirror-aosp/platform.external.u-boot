@@ -468,6 +468,7 @@
 	};
 
 	dmc: dmc@ff610000 {
+		u-boot,dm-pre-reloc;
 		compatible = "rockchip,rk3288-dmc", "syscon";
 		rockchip,cru = <&cru>;
 		rockchip,grf = <&grf>;
@@ -583,11 +584,13 @@
 	};
 
 	pmu: power-management@ff730000 {
+		u-boot,dm-pre-reloc;
 		compatible = "rockchip,rk3288-pmu", "syscon";
 		reg = <0xff730000 0x100>;
 	};
 
 	sgrf: syscon@ff740000 {
+		u-boot,dm-pre-reloc;
 		compatible = "rockchip,rk3288-sgrf", "syscon";
 		reg = <0xff740000 0x1000>;
 	};
@@ -596,6 +599,7 @@
 		compatible = "rockchip,rk3288-cru";
 		reg = <0xff760000 0x1000>;
 		rockchip,grf = <&grf>;
+		u-boot,dm-pre-reloc;
 		#clock-cells = <1>;
 		#reset-cells = <1>;
 		assigned-clocks = <&cru PLL_GPLL>, <&cru PLL_CPLL>,
@@ -611,6 +615,7 @@
 	};
 
 	grf: syscon@ff770000 {
+		u-boot,dm-pre-reloc;
 		compatible = "rockchip,rk3288-grf", "syscon";
 		reg = <0xff770000 0x1000>;
 	};
@@ -644,7 +649,6 @@
 		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		#sound-dai-cells = <1>;
 		dmas = <&dmac_bus_s 0>, <&dmac_bus_s 1>;
 		dma-names = "tx", "rx";
 		clock-names = "i2s_hclk", "i2s_clk";
@@ -655,6 +659,7 @@
 	};
 
 	vopb: vop@ff930000 {
+		u-boot,dm-pre-reloc;
 		compatible = "rockchip,rk3288-vop";
 		reg = <0xff930000 0x19c>;
 		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
@@ -709,6 +714,7 @@
 		iommus = <&vopl_mmu>;
 		power-domains = <&power RK3288_PD_VIO>;
 		status = "disabled";
+		u-boot,dm-pre-reloc;
 		vopl_out: port {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -835,6 +841,8 @@
 		#size-cells = <0>;
 		status = "disabled";
 		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
 			reg = <1>;
 			mipi_in: port {
 				#address-cells = <1>;
@@ -904,6 +912,7 @@
 	};
 
 	noc: syscon@ffac0000 {
+		u-boot,dm-pre-reloc;
 		compatible = "rockchip,rk3288-noc", "syscon";
 		reg = <0xffac0000 0x2000>;
 	};

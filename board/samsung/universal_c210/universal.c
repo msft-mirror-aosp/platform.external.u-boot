@@ -6,7 +6,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <spi.h>
 #include <lcd.h>
 #include <asm/io.h>

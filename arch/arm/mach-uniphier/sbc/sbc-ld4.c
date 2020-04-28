@@ -13,9 +13,6 @@ void uniphier_ld4_sbc_init(void)
 {
 	u32 tmp;
 
-	if (!uniphier_sbc_is_enabled())
-		return;
-
 	uniphier_sbc_init_savepin();
 
 	/* system bus output enable */

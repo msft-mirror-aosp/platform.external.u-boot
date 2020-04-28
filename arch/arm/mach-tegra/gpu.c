@@ -9,7 +9,6 @@
 #include <asm/io.h>
 #include <asm/arch/tegra.h>
 #include <asm/arch/mc.h>
-#include <asm/arch-tegra/ap.h>
 
 #include <fdt_support.h>
 
@@ -19,17 +18,12 @@ void tegra_gpu_config(void)
 {
 	struct mc_ctlr *mc = (struct mc_ctlr *)NV_PA_MC_BASE;
 
-#if defined(CONFIG_TEGRA_SUPPORT_NON_SECURE)
-	if (!tegra_cpu_is_non_secure())
-#endif
-	{
-		/* Turn VPR off */
-		writel(0, &mc->mc_video_protect_size_mb);
-		writel(TEGRA_MC_VIDEO_PROTECT_REG_WRITE_ACCESS_DISABLED,
-		       &mc->mc_video_protect_reg_ctrl);
-		/* read back to ensure the write went through */
-		readl(&mc->mc_video_protect_reg_ctrl);
-	}
+	/* Turn VPR off */
+	writel(0, &mc->mc_video_protect_size_mb);
+	writel(TEGRA_MC_VIDEO_PROTECT_REG_WRITE_ACCESS_DISABLED,
+	       &mc->mc_video_protect_reg_ctrl);
+	/* read back to ensure the write went through */
+	readl(&mc->mc_video_protect_reg_ctrl);
 
 	debug("configured VPR\n");
 

@@ -14,7 +14,6 @@
 #include <part.h>
 #include <usb.h>
 #include <usb_mass_storage.h>
-#include <watchdog.h>
 
 static int ums_read_sector(struct ums *ums_dev,
 			   ulong start, lbaint_t blkcnt, void *buf)
@@ -161,7 +160,7 @@ static int do_usb_mass_storage(cmd_tbl_t *cmdtp, int flag,
 
 	controller_index = (unsigned int)(simple_strtoul(
 				usb_controller,	NULL, 0));
-	if (usb_gadget_initialize(controller_index)) {
+	if (board_usb_init(controller_index, USB_INIT_DEVICE)) {
 		pr_err("Couldn't init USB controller.\n");
 		rc = CMD_RET_FAILURE;
 		goto cleanup_ums_init;
@@ -227,14 +226,12 @@ static int do_usb_mass_storage(cmd_tbl_t *cmdtp, int flag,
 			rc = CMD_RET_SUCCESS;
 			goto cleanup_register;
 		}
-
-		WATCHDOG_RESET();
 	}
 
 cleanup_register:
 	g_dnl_unregister();
 cleanup_board:
-	usb_gadget_release(controller_index);
+	board_usb_cleanup(controller_index, USB_INIT_DEVICE);
 cleanup_ums_init:
 	ums_fini();
 

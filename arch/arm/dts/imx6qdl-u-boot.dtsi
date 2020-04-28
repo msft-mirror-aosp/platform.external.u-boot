@@ -4,21 +4,14 @@
  */
 
 / {
-	aliases {
-		usb0 = &usbotg;
-	};
-
 	soc {
 		u-boot,dm-spl;
 
-		aips-bus@2000000 {
+		aips-bus@02000000 {
 			u-boot,dm-spl;
-			spba-bus@2000000 {
-				u-boot,dm-spl;
-			};
 		};
 
-		aips-bus@2100000 {
+		aips-bus@02100000 {
 			u-boot,dm-spl;
 		};
 	};

@@ -69,6 +69,7 @@
 	"0x500000@0xc0000(uimage),"\
 	"0x1a40000@0x5c0000(rootfs)\0" \
 	"mtdids=nand0=orion_nand\0"\
+	"bootdelay=-1\0"\
 	"autostart=no\0"\
 	"autoload=no\0"
 
@@ -93,6 +94,8 @@
  */
 #define CONFIG_JFFS2_NAND
 #define CONFIG_JFFS2_LZO
+#define CONFIG_MTD_DEVICE               /* needed for mtdparts commands */
+#define CONFIG_MTD_PARTITIONS
 
 /*
  * SATA
@@ -105,6 +108,13 @@
 /*
  * EFI partition
  */
+
+/*
+ *  Date Time
+ */
+#ifdef CONFIG_CMD_DATE
+#define CONFIG_RTC_MV
+#endif /* CONFIG_CMD_DATE */
 
 #define CONFIG_KIRKWOOD_GPIO
 

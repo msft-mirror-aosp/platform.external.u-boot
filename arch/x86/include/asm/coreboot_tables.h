@@ -8,8 +8,6 @@
 #ifndef _COREBOOT_TABLES_H
 #define _COREBOOT_TABLES_H
 
-struct memory_area;
-
 struct cbuint64 {
 	u32 lo;
 	u32 hi;

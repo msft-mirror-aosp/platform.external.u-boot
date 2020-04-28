@@ -5,7 +5,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <lcd.h>
 #include <libtizen.h>
 #include <samsung/misc.h>
@@ -102,7 +101,7 @@ void set_board_info(void)
 		bdtype = "";
 
 	sprintf(info, "%s%s", bdname, bdtype);
-	env_set("board_name", info);
+	env_set("boardname", info);
 #endif
 	snprintf(info, ARRAY_SIZE(info),  "%s%x-%s%s.dtb",
 		 CONFIG_SYS_SOC, s5p_cpu_id, bdname, bdtype);

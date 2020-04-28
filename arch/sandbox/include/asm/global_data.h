@@ -12,7 +12,6 @@
 /* Architecture-specific global data */
 struct arch_global_data {
 	uint8_t		*ram_buf;	/* emulated RAM buffer */
-	void		*text_base;	/* pointer to base of text region */
 };
 
 #include <asm-generic/global_data.h>

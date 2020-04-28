@@ -15,7 +15,7 @@
 #include <asm/arch/soc.h>
 #include <fsl_esdhc.h>
 #include <hwconfig.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <fsl_mmdc.h>
 #include <netdev.h>
 #include <fsl_sec.h>
@@ -24,15 +24,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static inline int get_board_version(void)
 {
-	uint32_t val;
-#ifdef CONFIG_TARGET_LS1012AFRDM
-	val = 0;
-#else
-	struct ccsr_gpio *pgpio = (void *)(GPIO2_BASE_ADDR);
+	struct ccsr_gpio *pgpio = (void *)(GPIO1_BASE_ADDR);
+	int val;
 
-	val = in_be32(&pgpio->gpdat) & BOARD_REV_MASK;/*Get GPIO2 11,12,14*/
+	val = in_be32(&pgpio->gpdat);
 
-#endif
 	return val;
 }
 
@@ -50,11 +46,11 @@ int checkboard(void)
 	puts("Version");
 
 	switch (rev) {
-	case BOARD_REV_A_B:
-		puts(": RevA/B ");
+	case BOARD_REV_A:
+		puts(": RevA ");
 		break;
-	case BOARD_REV_C:
-		puts(": RevC ");
+	case BOARD_REV_B:
+		puts(": RevB ");
 		break;
 	default:
 		puts(": unknown");
@@ -80,30 +76,6 @@ int esdhc_status_fixup(void *blob, const char *compat)
 }
 #endif
 
-#ifdef CONFIG_TFABOOT
-int dram_init(void)
-{
-#ifdef CONFIG_TARGET_LS1012AFRWY
-	int board_rev;
-#endif
-
-	gd->ram_size = tfa_get_dram_size();
-
-	if (!gd->ram_size) {
-#ifdef CONFIG_TARGET_LS1012AFRWY
-		board_rev = get_board_version();
-
-		if (board_rev & BOARD_REV_C)
-			gd->ram_size = SYS_SDRAM_SIZE_1024;
-		else
-			gd->ram_size = SYS_SDRAM_SIZE_512;
-#else
-		gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
-#endif
-	}
-	return 0;
-}
-#else
 int dram_init(void)
 {
 #ifdef CONFIG_TARGET_LS1012AFRWY
@@ -128,7 +100,7 @@ int dram_init(void)
 #ifdef CONFIG_TARGET_LS1012AFRWY
 	board_rev = get_board_version();
 
-	if (board_rev == BOARD_REV_C) {
+	if (board_rev & BOARD_REV_B) {
 		mparam.mdctl = 0x05180000;
 		gd->ram_size = SYS_SDRAM_SIZE_1024;
 	} else {
@@ -146,7 +118,6 @@ int dram_init(void)
 
 	return 0;
 }
-#endif
 
 int board_early_init_f(void)
 {
@@ -164,8 +135,7 @@ int board_init(void)
 	 * Set CCI-400 control override register to enable barrier
 	 * transaction
 	 */
-	if (current_el() == 3)
-		out_le32(&cci->ctrl_ord, CCI400_CTRLORD_EN_BARRIER);
+	out_le32(&cci->ctrl_ord, CCI400_CTRLORD_EN_BARRIER);
 
 #ifdef CONFIG_ENV_IS_NOWHERE
 	gd->env_addr = (ulong)&default_environment[0];

@@ -5,7 +5,7 @@
  */
 
 #include <config.h>
-#include <asm/assembler.h>
+#include <asm/armv7m.h>
 #include <linux/linkage.h>
 
 .type __hard_fault_entry, %function

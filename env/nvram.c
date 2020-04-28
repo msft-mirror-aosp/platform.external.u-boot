@@ -25,8 +25,7 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <linux/stddef.h>
 #include <search.h>
 #include <errno.h>

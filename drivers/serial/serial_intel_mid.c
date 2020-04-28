@@ -64,4 +64,5 @@ U_BOOT_DRIVER(serial_intel_mid) = {
 	.priv_auto_alloc_size = sizeof(struct NS16550),
 	.probe	= mid_serial_probe,
 	.ops	= &ns16550_serial_ops,
+	.flags	= DM_FLAG_PRE_RELOC,
 };

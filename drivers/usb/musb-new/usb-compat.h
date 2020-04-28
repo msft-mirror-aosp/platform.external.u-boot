@@ -67,7 +67,7 @@ static inline int usb_hcd_unmap_urb_for_dma(struct usb_hcd *hcd,
 	return 0;
 }
 
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 static inline struct usb_device *usb_dev_get_parent(struct usb_device *udev)
 {
 	struct udevice *parent = udev->dev->parent;

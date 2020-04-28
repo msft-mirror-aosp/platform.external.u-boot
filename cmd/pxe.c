@@ -6,16 +6,13 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
 #include <malloc.h>
 #include <mapmem.h>
-#include <lcd.h>
 #include <linux/string.h>
 #include <linux/ctype.h>
 #include <errno.h>
 #include <linux/list.h>
 #include <fs.h>
-#include <splash.h>
 #include <asm/io.h>
 
 #include "menu.h"
@@ -25,9 +22,6 @@
 
 const char *pxe_default_paths[] = {
 #ifdef CONFIG_SYS_SOC
-#ifdef CONFIG_SYS_BOARD
-	"default-" CONFIG_SYS_ARCH "-" CONFIG_SYS_SOC "-" CONFIG_SYS_BOARD,
-#endif
 	"default-" CONFIG_SYS_ARCH "-" CONFIG_SYS_SOC,
 #endif
 	"default-" CONFIG_SYS_ARCH,
@@ -477,7 +471,6 @@ struct pxe_label {
 	char *name;
 	char *menu;
 	char *kernel;
-	char *config;
 	char *append;
 	char *initrd;
 	char *fdt;
@@ -494,7 +487,6 @@ struct pxe_label {
  *
  * title - the name of the menu as given by a 'menu title' line.
  * default_label - the name of the default label, if any.
- * bmp - the bmp file name which is displayed in background
  * timeout - time in tenths of a second to wait for a user key-press before
  *           booting the default label.
  * prompt - if 0, don't prompt for a choice unless the timeout period is
@@ -505,7 +497,6 @@ struct pxe_label {
 struct pxe_menu {
 	char *title;
 	char *default_label;
-	char *bmp;
 	int timeout;
 	int prompt;
 	struct list_head labels;
@@ -546,9 +537,6 @@ static void label_destroy(struct pxe_label *label)
 
 	if (label->kernel)
 		free(label->kernel);
-
-	if (label->config)
-		free(label->config);
 
 	if (label->append)
 		free(label->append);
@@ -630,7 +618,6 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	char initrd_str[28];
 	char mac_str[29] = "";
 	char ip_str[68] = "";
-	char *fit_addr = NULL;
 	int bootm_argc = 2;
 	int len = 0;
 	ulong kernel_addr;
@@ -712,18 +699,6 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	}
 
 	bootm_argv[1] = env_get("kernel_addr_r");
-	/* for FIT, append the configuration identifier */
-	if (label->config) {
-		int len = strlen(bootm_argv[1]) + strlen(label->config) + 1;
-
-		fit_addr = malloc(len);
-		if (!fit_addr) {
-			printf("malloc fail (FIT address)\n");
-			return 1;
-		}
-		snprintf(fit_addr, len, "%s%s", bootm_argv[1], label->config);
-		bootm_argv[1] = fit_addr;
-	}
 
 	/*
 	 * fdt usage is optional:
@@ -783,7 +758,7 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 			fdtfilefree = malloc(len);
 			if (!fdtfilefree) {
 				printf("malloc fail (FDT filename)\n");
-				goto cleanup;
+				return 1;
 			}
 
 			snprintf(fdtfilefree, len, "%s%s%s%s%s%s",
@@ -797,7 +772,7 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 			if (err < 0) {
 				printf("Skipping %s for failure retrieving fdt\n",
 						label->name);
-				goto cleanup;
+				return 1;
 			}
 		} else {
 			bootm_argv[3] = NULL;
@@ -828,10 +803,6 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 		do_bootz(cmdtp, 0, bootm_argc, bootm_argv);
 #endif
 	unmap_sysmem(buf);
-
-cleanup:
-	if (fit_addr)
-		free(fit_addr);
 	return 1;
 }
 
@@ -858,7 +829,6 @@ enum token_type {
 	T_FDTDIR,
 	T_ONTIMEOUT,
 	T_IPAPPEND,
-	T_BACKGROUND,
 	T_INVALID
 };
 
@@ -892,7 +862,6 @@ static const struct token keywords[] = {
 	{"fdtdir", T_FDTDIR},
 	{"ontimeout", T_ONTIMEOUT,},
 	{"ipappend", T_IPAPPEND,},
-	{"background", T_BACKGROUND,},
 	{NULL, T_INVALID}
 };
 
@@ -1170,10 +1139,6 @@ static int parse_menu(cmd_tbl_t *cmdtp, char **c, struct pxe_menu *cfg,
 						nest_level + 1);
 		break;
 
-	case T_BACKGROUND:
-		err = parse_sliteral(c, &cfg->bmp);
-		break;
-
 	default:
 		printf("Ignoring malformed menu command: %.*s\n",
 				(int)(*c - s), s);
@@ -1223,33 +1188,6 @@ static int parse_label_menu(char **c, struct pxe_menu *cfg,
 }
 
 /*
- * Handles parsing a 'kernel' label.
- * expecting "filename" or "<fit_filename>#cfg"
- */
-static int parse_label_kernel(char **c, struct pxe_label *label)
-{
-	char *s;
-	int err;
-
-	err = parse_sliteral(c, &label->kernel);
-	if (err < 0)
-		return err;
-
-	s = strstr(label->kernel, "#");
-	if (!s)
-		return 1;
-
-	label->config = malloc(strlen(s) + 1);
-	if (!label->config)
-		return -ENOMEM;
-
-	strcpy(label->config, s);
-	*s = 0;
-
-	return 1;
-}
-
-/*
  * Parses a label and adds it to the list of labels for a menu.
  *
  * A label ends when we either get to the end of a file, or
@@ -1290,7 +1228,7 @@ static int parse_label(char **c, struct pxe_menu *cfg)
 
 		case T_KERNEL:
 		case T_LINUX:
-			err = parse_label_kernel(c, label);
+			err = parse_sliteral(c, &label->kernel);
 			break;
 
 		case T_APPEND:
@@ -1587,20 +1525,6 @@ static void handle_pxe_menu(cmd_tbl_t *cmdtp, struct pxe_menu *cfg)
 	void *choice;
 	struct menu *m;
 	int err;
-
-#ifdef CONFIG_CMD_BMP
-	/* display BMP if available */
-	if (cfg->bmp) {
-		if (get_relfile(cmdtp, cfg->bmp, load_addr)) {
-			run_command("cls", 0);
-			bmp_display(load_addr,
-				    BMP_ALIGN_CENTER, BMP_ALIGN_CENTER);
-		} else {
-			printf("Skipping background bmp %s for failure\n",
-			       cfg->bmp);
-		}
-	}
-#endif
 
 	m = pxe_menu_to_menu(cfg);
 	if (!m)

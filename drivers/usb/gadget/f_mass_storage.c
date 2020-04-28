@@ -256,7 +256,7 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb/gadget.h>
 #include <linux/usb/composite.h>
-#include <linux/bitmap.h>
+#include <usb/lin_gadget_compat.h>
 #include <g_dnl.h>
 
 /*------------------------------------------------------------------------*/

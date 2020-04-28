@@ -17,6 +17,9 @@
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(3 * SZ_1M)
 
+#define CONFIG_MXC_UART
+#define CONFIG_MXC_UART_BASE		UART1_BASE
+
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 0) \
 	func(MMC, mmc, 1) \
@@ -30,6 +33,7 @@
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 0x10000)
 
 /* Physical Memory Map */
+#define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
 
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
@@ -59,6 +63,7 @@
 
 /* Network */
 #define CONFIG_FEC_MXC
+#define CONFIG_MII
 
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR          0x0
@@ -83,6 +88,7 @@
 
 #define CONFIG_IMX_THERMAL
 
+#define CONFIG_PWM_IMX
 #define CONFIG_IMX6_PWM_PER_CLK 66000000
 
 #define CONFIG_ENV_OFFSET		(8 * SZ_64K)
@@ -91,6 +97,7 @@
 #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
 
 #ifdef CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SUPPORT_EMMC_BOOT
 #define CONFIG_SYS_MMC_ENV_DEV		0 /* USDHC4 eMMC */
 /* 0=user, 1=boot0, 2=boot1, * 4..7=general0..3. */
 #define CONFIG_SYS_MMC_ENV_PART		1 /* boot0 */

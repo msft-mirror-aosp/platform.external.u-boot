@@ -6,7 +6,7 @@
 
 #include <common.h>
 #include <dm.h>
-#include <env.h>
+#include <inttypes.h>
 #include <pci.h>
 #include <scsi.h>
 #include <dm/device-internal.h>
@@ -196,7 +196,7 @@ static ulong scsi_read(struct blk_desc *block_dev, lbaint_t blknr,
 			blks = 0;
 		}
 		debug("scsi_read_ext: startblk " LBAF
-		      ", blccnt %x buffer %lX\n",
+		      ", blccnt %x buffer %" PRIXPTR "\n",
 		      start, smallblks, buf_addr);
 		if (scsi_exec(bdev, pccb)) {
 			scsi_print_error(pccb);
@@ -206,7 +206,7 @@ static ulong scsi_read(struct blk_desc *block_dev, lbaint_t blknr,
 		buf_addr += pccb->datalen;
 	} while (blks != 0);
 	debug("scsi_read_ext: end startblk " LBAF
-	      ", blccnt %x buffer %lX\n", start, smallblks, buf_addr);
+	      ", blccnt %x buffer %" PRIXPTR "\n", start, smallblks, buf_addr);
 	return blkcnt;
 }
 
@@ -260,7 +260,7 @@ static ulong scsi_write(struct blk_desc *block_dev, lbaint_t blknr,
 			start += blks;
 			blks = 0;
 		}
-		debug("%s: startblk " LBAF ", blccnt %x buffer %lx\n",
+		debug("%s: startblk " LBAF ", blccnt %x buffer %" PRIXPTR "\n",
 		      __func__, start, smallblks, buf_addr);
 		if (scsi_exec(bdev, pccb)) {
 			scsi_print_error(pccb);
@@ -269,7 +269,7 @@ static ulong scsi_write(struct blk_desc *block_dev, lbaint_t blknr,
 		}
 		buf_addr += pccb->datalen;
 	} while (blks != 0);
-	debug("%s: end startblk " LBAF ", blccnt %x buffer %lX\n",
+	debug("%s: end startblk " LBAF ", blccnt %x buffer %" PRIXPTR "\n",
 	      __func__, start, smallblks, buf_addr);
 	return blkcnt;
 }
@@ -593,9 +593,10 @@ static int do_scsi_scan_one(struct udevice *dev, int id, int lun, bool verbose)
 	memcpy(&bdesc->vendor, &bd.vendor, sizeof(bd.vendor));
 	memcpy(&bdesc->product, &bd.product, sizeof(bd.product));
 	memcpy(&bdesc->revision, &bd.revision,	sizeof(bd.revision));
+	part_init(bdesc);
 
 	if (verbose) {
-		printf("  Device %d: ", bdesc->devnum);
+		printf("  Device %d: ", 0);
 		dev_print(bdesc);
 	}
 	return 0;
@@ -660,16 +661,15 @@ int scsi_scan(bool verbose)
 	scsi_max_devs = 0;
 	for (i = 0; i < CONFIG_SYS_SCSI_MAX_SCSI_ID; i++) {
 		for (lun = 0; lun < CONFIG_SYS_SCSI_MAX_LUN; lun++) {
-			struct blk_desc *bdesc = &scsi_dev_desc[scsi_max_devs];
-
-			ret = scsi_detect_dev(NULL, i, lun, bdesc);
+			ret = scsi_detect_dev(NULL, i, lun,
+					      &scsi_dev_desc[scsi_max_devs]);
 			if (ret)
 				continue;
-			part_init(bdesc);
+			part_init(&scsi_dev_desc[scsi_max_devs]);
 
 			if (verbose) {
-				printf("  Device %d: ", bdesc->devnum);
-				dev_print(bdesc);
+				printf("  Device %d: ", 0);
+				dev_print(&scsi_dev_desc[scsi_max_devs]);
 			}
 			scsi_max_devs++;
 		} /* next LUN */

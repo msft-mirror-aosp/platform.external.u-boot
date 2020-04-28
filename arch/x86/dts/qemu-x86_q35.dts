@@ -20,7 +20,6 @@
 /include/ "skeleton.dtsi"
 /include/ "serial.dtsi"
 /include/ "keyboard.dtsi"
-/include/ "reset.dtsi"
 /include/ "rtc.dtsi"
 /include/ "tsc_timer.dtsi"
 

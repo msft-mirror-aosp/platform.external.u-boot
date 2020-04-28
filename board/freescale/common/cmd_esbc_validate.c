@@ -5,7 +5,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <env.h>
 #include <fsl_validate.h>
 
 int do_esbc_halt(cmd_tbl_t *cmdtp, int flag, int argc,

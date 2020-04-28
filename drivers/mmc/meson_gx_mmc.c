@@ -278,7 +278,6 @@ int meson_mmc_bind(struct udevice *dev)
 
 static const struct udevice_id meson_mmc_match[] = {
 	{ .compatible = "amlogic,meson-gx-mmc" },
-	{ .compatible = "amlogic,meson-axg-mmc" },
 	{ /* sentinel */ }
 };
 

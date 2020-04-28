@@ -8,7 +8,6 @@
 #include <command.h>
 #include <dm.h>
 #include <dm/platform_data/net_ethoc.h>
-#include <env.h>
 #include <linux/ctype.h>
 #include <linux/string.h>
 #include <linux/stringify.h>

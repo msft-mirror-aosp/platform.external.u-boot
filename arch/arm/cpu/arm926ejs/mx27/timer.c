@@ -126,7 +126,7 @@ unsigned long long get_ticks(void)
 	return timestamp;
 }
 
-static ulong get_timer_masked(void)
+ulong get_timer_masked(void)
 {
 	/*
 	 * get_ticks() returns a long long (64 bit), it wraps in

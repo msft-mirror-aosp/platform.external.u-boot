@@ -23,9 +23,9 @@ int run_usb_dnl_gadget(int usbctrl_index, char *usb_dnl_gadget)
 	bool dfu_reset = false;
 	int ret, i = 0;
 
-	ret = usb_gadget_initialize(usbctrl_index);
+	ret = board_usb_init(usbctrl_index, USB_INIT_DEVICE);
 	if (ret) {
-		pr_err("usb_gadget_initialize failed\n");
+		pr_err("board usb init failed\n");
 		return CMD_RET_FAILURE;
 	}
 	g_dnl_clear_detach();
@@ -84,7 +84,7 @@ int run_usb_dnl_gadget(int usbctrl_index, char *usb_dnl_gadget)
 	}
 exit:
 	g_dnl_unregister();
-	usb_gadget_release(usbctrl_index);
+	board_usb_cleanup(usbctrl_index, USB_INIT_DEVICE);
 
 	if (dfu_reset)
 		do_reset(NULL, 0, 0, NULL);

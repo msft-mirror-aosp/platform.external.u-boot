@@ -5,7 +5,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <hwconfig.h>
 #include <fsl_ddr_sdram.h>
 
@@ -23,12 +22,9 @@
  */
 
 /* Board-specific functions defined in each board's ddr.c */
-void __weak fsl_ddr_board_options(memctl_options_t *popts,
-				  dimm_params_t *pdimm,
-				  unsigned int ctrl_num)
-{
-	return;
-}
+extern void fsl_ddr_board_options(memctl_options_t *popts,
+		dimm_params_t *pdimm,
+		unsigned int ctrl_num);
 
 struct dynamic_odt {
 	unsigned int odt_rd_cfg;
@@ -746,7 +742,8 @@ unsigned int populate_memctl_options(const common_timing_params_t *common_dimm,
 			unsigned int ctrl_num)
 {
 	unsigned int i;
-	char buf[HWCONFIG_BUFFER_SIZE];
+	char buffer[HWCONFIG_BUFFER_SIZE];
+	char *buf = NULL;
 #if defined(CONFIG_SYS_FSL_DDR3) || \
 	defined(CONFIG_SYS_FSL_DDR2) || \
 	defined(CONFIG_SYS_FSL_DDR4)
@@ -760,8 +757,8 @@ unsigned int populate_memctl_options(const common_timing_params_t *common_dimm,
 	 * Extract hwconfig from environment since we have not properly setup
 	 * the environment but need it for ddr config params
 	 */
-	if (env_get_f("hwconfig", buf, sizeof(buf)) < 0)
-		buf[0] = '\0';
+	if (env_get_f("hwconfig", buffer, sizeof(buffer)) > 0)
+		buf = buffer;
 
 #if defined(CONFIG_SYS_FSL_DDR3) || \
 	defined(CONFIG_SYS_FSL_DDR2) || \
@@ -1401,14 +1398,15 @@ int fsl_use_spd(void)
 	int use_spd = 0;
 
 #ifdef CONFIG_DDR_SPD
-	char buf[HWCONFIG_BUFFER_SIZE];
+	char buffer[HWCONFIG_BUFFER_SIZE];
+	char *buf = NULL;
 
 	/*
 	 * Extract hwconfig from environment since we have not properly setup
 	 * the environment but need it for ddr config params
 	 */
-	if (env_get_f("hwconfig", buf, sizeof(buf)) < 0)
-		buf[0] = '\0';
+	if (env_get_f("hwconfig", buffer, sizeof(buffer)) > 0)
+		buf = buffer;
 
 	/* if hwconfig is not enabled, or "sdram" is not defined, use spd */
 	if (hwconfig_sub_f("fsl_ddr", "sdram", buf)) {

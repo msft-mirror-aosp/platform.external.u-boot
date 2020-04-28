@@ -6,20 +6,8 @@
  */
 
 / {
-	smem {
-		u-boot,dm-pre-reloc;
-	};
-
 	soc {
 		u-boot,dm-pre-reloc;
-
-		qcom,tlmm@1010000 {
-			u-boot,dm-pre-reloc;
-
-			uart {
-				u-boot,dm-pre-reloc;
-			};
-		};
 
 		clock-controller@300000 {
 			u-boot,dm-pre-reloc;
@@ -27,8 +15,8 @@
 
 		serial@75b0000 {
 			u-boot,dm-pre-reloc;
+			};
 		};
-	};
 };
 
 &pm8994_pon {

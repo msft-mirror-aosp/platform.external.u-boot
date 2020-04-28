@@ -6,7 +6,7 @@
 #include <config.h>
 #include <linux/linkage.h>
 
-#ifdef CONFIG_ARCH_RV64I
+#ifdef CONFIG_CPU_RISCV_64
 #define STORE_IDX(reg, idx)	sd reg, (idx*8)(a0)
 #define LOAD_IDX(reg, idx)	ld reg, (idx*8)(a0)
 #else

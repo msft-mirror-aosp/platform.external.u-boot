@@ -384,7 +384,7 @@ int submit_control_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 }
 
 int submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
-		   int len, int interval, bool nonblock)
+		   int len, int interval)
 {
 	PDEBUG(0, "dev = %p pipe = %#lx buf = %p size = %d int = %d\n", dev, pipe,
 	       buffer, len, interval);

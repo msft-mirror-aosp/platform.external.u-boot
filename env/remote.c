@@ -7,7 +7,7 @@
 
 #include <common.h>
 #include <command.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <linux/stddef.h>
 
 #ifdef ENV_IS_EMBEDDED

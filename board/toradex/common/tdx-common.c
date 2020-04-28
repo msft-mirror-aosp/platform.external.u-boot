@@ -4,15 +4,13 @@
  */
 
 #include <common.h>
-#include <env.h>
+#include <environment.h>
 #include <g_dnl.h>
 #include <linux/libfdt.h>
 
 #include "tdx-cfg-block.h"
 #include <asm/setup.h>
 #include "tdx-common.h"
-
-#define TORADEX_OUI 0x00142dUL
 
 #ifdef CONFIG_TDX_CFG_BLOCK
 static char tdx_serial_str[9];
@@ -70,24 +68,19 @@ int show_board_info(void)
 	unsigned char ethaddr[6];
 
 	if (read_tdx_cfg_block()) {
-		printf("MISSING TORADEX CONFIG BLOCK\n");
-		tdx_eth_addr.oui = htonl(TORADEX_OUI << 8);
-		tdx_eth_addr.nic = htonl(tdx_serial << 8);
+		printf("Missing Toradex config block\n");
 		checkboard();
-	} else {
-		sprintf(tdx_serial_str, "%08u", tdx_serial);
-		sprintf(tdx_board_rev_str, "V%1d.%1d%c",
-			tdx_hw_tag.ver_major,
-			tdx_hw_tag.ver_minor,
-			(char)tdx_hw_tag.ver_assembly + 'A');
-
-		env_set("serial#", tdx_serial_str);
-
-		printf("Model: Toradex %s %s, Serial# %s\n",
-		       toradex_modules[tdx_hw_tag.prodid],
-		       tdx_board_rev_str,
-		       tdx_serial_str);
+		return 0;
 	}
+
+	/* board serial-number */
+	sprintf(tdx_serial_str, "%08u", tdx_serial);
+	sprintf(tdx_board_rev_str, "V%1d.%1d%c",
+		tdx_hw_tag.ver_major,
+		tdx_hw_tag.ver_minor,
+		(char)tdx_hw_tag.ver_assembly + 'A');
+
+	env_set("serial#", tdx_serial_str);
 
 	/*
 	 * Check if environment contains a valid MAC address,
@@ -107,6 +100,11 @@ int show_board_info(void)
 		eth_env_set_enetaddr("eth1addr", ethaddr);
 	}
 #endif
+
+	printf("Model: Toradex %s %s, Serial# %s\n",
+	       toradex_modules[tdx_hw_tag.prodid],
+	       tdx_board_rev_str,
+	       tdx_serial_str);
 
 	return 0;
 }

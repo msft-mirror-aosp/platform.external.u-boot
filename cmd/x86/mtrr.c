@@ -73,10 +73,10 @@ static int do_mtrr_set(uint reg, int argc, char * const argv[])
 		mask |= MTRR_PHYS_MASK_VALID;
 
 	printf("base=%llx, mask=%llx\n", base, mask);
-	mtrr_open(&state, true);
+	mtrr_open(&state);
 	wrmsrl(MTRR_PHYS_BASE_MSR(reg), base);
 	wrmsrl(MTRR_PHYS_MASK_MSR(reg), mask);
-	mtrr_close(&state, true);
+	mtrr_close(&state);
 
 	return 0;
 }
@@ -86,14 +86,14 @@ static int mtrr_set_valid(int reg, bool valid)
 	struct mtrr_state state;
 	uint64_t mask;
 
-	mtrr_open(&state, true);
+	mtrr_open(&state);
 	mask = native_read_msr(MTRR_PHYS_MASK_MSR(reg));
 	if (valid)
 		mask |= MTRR_PHYS_MASK_VALID;
 	else
 		mask &= ~MTRR_PHYS_MASK_VALID;
 	wrmsrl(MTRR_PHYS_MASK_MSR(reg), mask);
-	mtrr_close(&state, true);
+	mtrr_close(&state);
 
 	return 0;
 }

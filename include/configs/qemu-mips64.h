@@ -13,6 +13,8 @@
 
 #define CONFIG_QEMU_MIPS
 
+#define CONFIG_MISC_INIT_R
+
 #define CONFIG_TIMESTAMP		/* Print image info with timestamp */
 
 #define CONFIG_EXTRA_ENV_SETTINGS					\
@@ -88,6 +90,9 @@
 #define CONFIG_SYS_FLASH_BASE		0xffffffffbfc00000
 #define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_SYS_MAX_FLASH_SECT	128
+#define CONFIG_SYS_FLASH_CFI
+#define CONFIG_FLASH_CFI_DRIVER
+#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE
 
 /* Address and size of Primary Environment Sector */
 #define CONFIG_ENV_SIZE		0x8000

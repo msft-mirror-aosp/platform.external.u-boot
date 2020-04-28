@@ -10,13 +10,11 @@
 
 #include <common.h>
 #include <debug_uart.h>
-#include <dm.h>
 #include <errno.h>
 #include <linux/err.h>
 #include <linux/types.h>
 #include <efi.h>
 #include <efi_api.h>
-#include <sysreset.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -131,7 +129,7 @@ efi_status_t EFIAPI efi_main(efi_handle_t image,
 	return EFI_SUCCESS;
 }
 
-static void efi_exit(void)
+void reset_cpu(ulong addr)
 {
 	struct efi_priv *priv = global_priv;
 
@@ -139,26 +137,3 @@ static void efi_exit(void)
 	printf("U-Boot EFI exiting\n");
 	priv->boot->exit(priv->parent_image, EFI_SUCCESS, 0, NULL);
 }
-
-static int efi_sysreset_request(struct udevice *dev, enum sysreset_t type)
-{
-	efi_exit();
-
-	return -EINPROGRESS;
-}
-
-static const struct udevice_id efi_sysreset_ids[] = {
-	{ .compatible = "efi,reset" },
-	{ }
-};
-
-static struct sysreset_ops efi_sysreset_ops = {
-	.request = efi_sysreset_request,
-};
-
-U_BOOT_DRIVER(efi_sysreset) = {
-	.name = "efi-sysreset",
-	.id = UCLASS_SYSRESET,
-	.of_match = efi_sysreset_ids,
-	.ops = &efi_sysreset_ops,
-};

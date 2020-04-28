@@ -13,12 +13,6 @@ if [ ! -f $BL31 ]; then
 	BL31=/dev/null
 fi
 
-if grep -q "^CONFIG_MACH_SUN50I_H6=y" .config; then
-	BL31_ADDR=0x104000
-else
-	BL31_ADDR=0x44000
-fi
-
 cat << __HEADER_EOF
 /dts-v1/;
 
@@ -41,8 +35,8 @@ cat << __HEADER_EOF
 			type = "firmware";
 			arch = "arm64";
 			compression = "none";
-			load = <$BL31_ADDR>;
-			entry = <$BL31_ADDR>;
+			load = <0x44000>;
+			entry = <0x44000>;
 		};
 __HEADER_EOF
 

@@ -13,8 +13,8 @@
 #include <pwrseq.h>
 #include <syscon.h>
 #include <asm/gpio.h>
-#include <asm/arch-rockchip/clock.h>
-#include <asm/arch-rockchip/periph.h>
+#include <asm/arch/clock.h>
+#include <asm/arch/periph.h>
 #include <linux/err.h>
 
 struct rockchip_mmc_plat {
@@ -156,7 +156,6 @@ static int rockchip_dwmmc_bind(struct udevice *dev)
 }
 
 static const struct udevice_id rockchip_dwmmc_ids[] = {
-	{ .compatible = "rockchip,rk2928-dw-mshc" },
 	{ .compatible = "rockchip,rk3288-dw-mshc" },
 	{ }
 };

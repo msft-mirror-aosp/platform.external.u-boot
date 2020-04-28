@@ -52,6 +52,9 @@
 /* allow overwriting serial config and ethaddr */
 #define CONFIG_ENV_OVERWRITE
 
+#define CONFIG_SERIAL1
+#define CONFIG_SERIAL2
+#define CONFIG_SERIAL3
 
 /*
  * GPMC NAND block.  We support 1 device and the physical address to
@@ -90,9 +93,12 @@
 
 /* SPL */
 /* Defines for SPL */
+#define CONFIG_SPL_TEXT_BASE    0x40400000
 #define CONFIG_SPL_MAX_SIZE		(SRAM_SCRATCH_SPACE_ADDR - \
 					 CONFIG_SPL_TEXT_BASE)
 
+#define CONFIG_DRIVER_TI_EMAC
+#define CONFIG_MII
 #define CONFIG_BOOTP_DNS2
 #define CONFIG_BOOTP_SEND_HOSTNAME
 #define CONFIG_NET_RETRY_COUNT	10

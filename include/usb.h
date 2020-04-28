@@ -140,7 +140,7 @@ struct usb_device {
 	int act_len;			/* transferred bytes */
 	int maxchild;			/* Number of ports if hub */
 	int portnr;			/* Port number, 1=first */
-#if !CONFIG_IS_ENABLED(DM_USB)
+#ifndef CONFIG_DM_USB
 	/* parent hub, or NULL if this is the root hub */
 	struct usb_device *parent;
 	struct usb_device *children[USB_MAXCHILDREN];
@@ -148,7 +148,7 @@ struct usb_device {
 #endif
 	/* slot_id - for xHCI enabled devices */
 	unsigned int slot_id;
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 	struct udevice *dev;		/* Pointer to associated device */
 	struct udevice *controller_dev;	/* Pointer to associated controller */
 #endif
@@ -173,7 +173,7 @@ enum usb_init_type {
 int usb_lowlevel_init(int index, enum usb_init_type init, void **controller);
 int usb_lowlevel_stop(int index);
 
-#if defined(CONFIG_USB_MUSB_HOST) || CONFIG_IS_ENABLED(DM_USB)
+#if defined(CONFIG_USB_MUSB_HOST) || defined(CONFIG_DM_USB)
 int usb_reset_root_port(struct usb_device *dev);
 #else
 #define usb_reset_root_port(dev)
@@ -184,10 +184,10 @@ int submit_bulk_msg(struct usb_device *dev, unsigned long pipe,
 int submit_control_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 			int transfer_len, struct devrequest *setup);
 int submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
-			int transfer_len, int interval, bool nonblock);
+			int transfer_len, int interval);
 
 #if defined CONFIG_USB_EHCI_HCD || defined CONFIG_USB_MUSB_HOST \
-	|| CONFIG_IS_ENABLED(DM_USB)
+	|| defined(CONFIG_DM_USB)
 struct int_queue *create_int_queue(struct usb_device *dev, unsigned long pipe,
 	int queuesize, int elementsize, void *buffer, int interval);
 int destroy_int_queue(struct usb_device *dev, struct int_queue *queue);
@@ -261,8 +261,8 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 			void *data, unsigned short size, int timeout);
 int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 			void *data, int len, int *actual_length, int timeout);
-int usb_int_msg(struct usb_device *dev, unsigned long pipe,
-		void *buffer, int transfer_len, int interval, bool nonblock);
+int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
+			void *buffer, int transfer_len, int interval);
 int usb_disable_asynch(int disable);
 int usb_maxpacket(struct usb_device *dev, unsigned long pipe);
 int usb_get_configuration_no(struct usb_device *dev, int cfgno,
@@ -588,7 +588,7 @@ struct usb_hub_device {
 	struct usb_tt tt;		/* Transaction Translator */
 };
 
-#if CONFIG_IS_ENABLED(DM_USB)
+#ifdef CONFIG_DM_USB
 /**
  * struct usb_platdata - Platform data about a USB controller
  *
@@ -708,7 +708,7 @@ struct dm_usb_ops {
 	 */
 	int (*interrupt)(struct udevice *bus, struct usb_device *udev,
 			 unsigned long pipe, void *buffer, int length,
-			 int interval, bool nonblock);
+			 int interval);
 
 	/**
 	 * create_int_queue() - Create and queue interrupt packets
@@ -912,7 +912,7 @@ int usb_setup_ehci_gadget(struct ehci_ctrl **ctlrp);
  */
 void usb_stor_reset(void);
 
-#else /* !CONFIG_IS_ENABLED(DM_USB) */
+#else /* !CONFIG_DM_USB */
 
 struct usb_device *usb_get_dev_index(int index);
 
@@ -1029,8 +1029,7 @@ int usb_emul_bulk(struct udevice *emul, struct usb_device *udev,
  * @return 0 if OK, -ve on error
  */
 int usb_emul_int(struct udevice *emul, struct usb_device *udev,
-		  unsigned long pipe, void *buffer, int length, int interval,
-		  bool nonblock);
+		  unsigned long pipe, void *buffer, int length, int interval);
 
 /**
  * usb_emul_find() - Find an emulator for a particular device

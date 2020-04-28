@@ -17,6 +17,8 @@
 /* Mach type */
 #define CONFIG_MACH_TYPE		MACH_TYPE_PEPPER
 
+#define CONFIG_ENV_SIZE			(128 << 10)	/* 128 KiB */
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	DEFAULT_LINUX_BOOT_ENV \
 	"bootdir=/boot\0" \
@@ -68,6 +70,7 @@
 	"fi;" \
 
 /* Serial console configuration */
+#define CONFIG_SERIAL1			1
 #define CONFIG_SYS_NS16550_COM1		0x44e09000
 
 /* Ethernet support */

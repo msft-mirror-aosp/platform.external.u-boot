@@ -1,6 +1,5 @@
 
 #include <common.h>
-#include <memalign.h>
 #include <linux/compat.h>
 
 struct p_current cur = {
@@ -19,7 +18,7 @@ void *kmalloc(size_t size, int flags)
 {
 	void *p;
 
-	p = malloc_cache_aligned(size);
+	p = memalign(ARCH_DMA_MINALIGN, size);
 	if (flags & __GFP_ZERO)
 		memset(p, 0, size);
 
@@ -38,5 +37,5 @@ struct kmem_cache *get_mem(int element_sz)
 
 void *kmem_cache_alloc(struct kmem_cache *obj, int flag)
 {
-	return malloc_cache_aligned(obj->sz);
+	return memalign(ARCH_DMA_MINALIGN, obj->sz);
 }

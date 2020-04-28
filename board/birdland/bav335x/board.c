@@ -8,7 +8,6 @@
  */
 
 #include <common.h>
-#include <env.h>
 #include <errno.h>
 #include <spl.h>
 #include <asm/arch/cpu.h>
@@ -28,8 +27,9 @@
 #include <cpsw.h>
 #include <power/tps65217.h>
 #include <power/tps65910.h>
-#include <env_internal.h>
+#include <environment.h>
 #include <watchdog.h>
+#include <environment.h>
 #include "board.h"
 
 DECLARE_GLOBAL_DATA_PTR;
