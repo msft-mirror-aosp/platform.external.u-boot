@@ -9,32 +9,13 @@
 #include <image-android-dt.h>
 #include <android_image.h>
 #include <malloc.h>
+#include <mapmem.h>
 #include <errno.h>
 #include <asm/unaligned.h>
 #include <mapmem.h>
 
-#define ANDROID_IMAGE_DEFAULT_KERNEL_ADDR	0x10008000
-
-static char andr_tmp_str[ANDR_BOOT_ARGS_SIZE + 1];
-
-static ulong android_image_get_kernel_addr(const struct andr_img_hdr *hdr)
-{
-	/*
-	 * All the Android tools that generate a boot.img use this
-	 * address as the default.
-	 *
-	 * Even though it doesn't really make a lot of sense, and it
-	 * might be valid on some platforms, we treat that adress as
-	 * the default value for this field, and try to execute the
-	 * kernel in place in such a case.
-	 *
-	 * Otherwise, we will return the actual value set by the user.
-	 */
-	if (hdr->kernel_addr == ANDROID_IMAGE_DEFAULT_KERNEL_ADDR)
-		return (ulong)hdr + hdr->page_size;
-
-	return hdr->kernel_addr;
-}
+#define BLK_CNT(_num_bytes, _block_size) ((_num_bytes + _block_size - 1) / \
+    _block_size)
 
 /**
  * android_image_get_kernel() - processes kernel part of Android boot images
@@ -51,150 +32,278 @@ static ulong android_image_get_kernel_addr(const struct andr_img_hdr *hdr)
  * Return: Zero, os start address and length on success,
  *		otherwise on failure.
  */
-int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
+int android_image_get_kernel(const andr_boot_info *boot_info, int verify,
 			     ulong *os_data, ulong *os_len)
 {
-	u32 kernel_addr = android_image_get_kernel_addr(hdr);
-	const struct image_header *ihdr = (const struct image_header *)
-		((uintptr_t)hdr + hdr->page_size);
-
-	/*
-	 * Not all Android tools use the id field for signing the image with
-	 * sha1 (or anything) so we don't check it. It is not obvious that the
-	 * string is null terminated so we take care of this.
-	 */
-	strncpy(andr_tmp_str, hdr->name, ANDR_BOOT_NAME_SIZE);
-	andr_tmp_str[ANDR_BOOT_NAME_SIZE] = '\0';
-	if (strlen(andr_tmp_str))
-		printf("Android's image name: %s\n", andr_tmp_str);
-
-	printf("Kernel load addr 0x%08x size %u KiB\n",
-	       kernel_addr, DIV_ROUND_UP(hdr->kernel_size, 1024));
-
-	int len = 0;
-	if (*hdr->cmdline) {
-		printf("Kernel command line: %s\n", hdr->cmdline);
-		len += strlen(hdr->cmdline);
-	}
-
-	char *bootargs = env_get("bootargs");
-	if (bootargs)
-		len += strlen(bootargs);
-
-	char *newbootargs = malloc(len + 2);
-	if (!newbootargs) {
-		puts("Error: malloc in android_image_get_kernel failed!\n");
-		return -ENOMEM;
-	}
-	*newbootargs = '\0';
-
-	if (bootargs) {
-		strcpy(newbootargs, bootargs);
-		strcat(newbootargs, " ");
-	}
-	if (*hdr->cmdline)
-		strcat(newbootargs, hdr->cmdline);
-
-	env_set("bootargs", newbootargs);
-
-	if (os_data) {
-		if (image_get_magic(ihdr) == IH_MAGIC) {
-			*os_data = image_get_data(ihdr);
-		} else {
-			*os_data = (ulong)hdr;
-			*os_data += hdr->page_size;
-		}
-	}
-	if (os_len) {
-		if (image_get_magic(ihdr) == IH_MAGIC)
-			*os_len = image_get_data_size(ihdr);
-		else
-			*os_len = hdr->kernel_size;
-	}
 	return 0;
 }
 
-int android_image_check_header(const struct andr_img_hdr *hdr)
+int android_image_check_header(const andr_boot_info *boot_info)
 {
-	return memcmp(ANDR_BOOT_MAGIC, hdr->magic, ANDR_BOOT_MAGIC_SIZE);
+	return 0;
 }
 
-ulong android_image_get_end(const struct andr_img_hdr *hdr)
+ulong android_image_get_end(const andr_boot_info *boot_info)
 {
-	ulong end;
-
-	/*
-	 * The header takes a full page, the remaining components are aligned
-	 * on page boundary
-	 */
-	end = (ulong)hdr;
-	end += hdr->page_size;
-	end += ALIGN(hdr->kernel_size, hdr->page_size);
-	end += ALIGN(hdr->ramdisk_size, hdr->page_size);
-	end += ALIGN(hdr->second_size, hdr->page_size);
-
-	if (hdr->header_version >= 1)
-		end += ALIGN(hdr->recovery_dtbo_size, hdr->page_size);
-
-	if (hdr->header_version >= 2)
-		end += ALIGN(hdr->dtb_size, hdr->page_size);
-
-	return end;
+	return 0;
 }
 
-ulong android_image_get_kload(const struct andr_img_hdr *hdr)
+ulong android_image_get_kload(const andr_boot_info *boot_info)
 {
-	return android_image_get_kernel_addr(hdr);
+	return (ulong)(boot_info->kernel_addr);
 }
 
-ulong android_image_get_kcomp(const struct andr_img_hdr *hdr)
+ulong android_image_get_kcomp(const andr_boot_info *boot_info)
 {
-	const void *p = (void *)((uintptr_t)hdr + hdr->page_size);
-
-	if (image_get_magic((image_header_t *)p) == IH_MAGIC)
-		return image_get_comp((image_header_t *)p);
-	else if (get_unaligned_le32(p) == LZ4F_MAGIC)
-		return IH_COMP_LZ4;
-	else
-		return IH_COMP_NONE;
+	return 0;
 }
 
-int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
+int android_image_get_ramdisk(const andr_boot_info *boot_info,
 			      ulong *rd_data, ulong *rd_len)
 {
-	if (!hdr->ramdisk_size) {
-		*rd_data = *rd_len = 0;
-		return -1;
-	}
-
-	printf("RAM disk load addr 0x%08x size %u KiB\n",
-	       hdr->ramdisk_addr, DIV_ROUND_UP(hdr->ramdisk_size, 1024));
-
-	*rd_data = (unsigned long)hdr;
-	*rd_data += hdr->page_size;
-	*rd_data += ALIGN(hdr->kernel_size, hdr->page_size);
-
-	*rd_len = hdr->ramdisk_size;
+	*rd_data = (ulong)(boot_info->vendor_ramdisk_addr);
+	*rd_len = boot_info->vendor_ramdisk_size + boot_info->boot_ramdisk_size;
 	return 0;
 }
 
-int android_image_get_second(const struct andr_img_hdr *hdr,
-			      ulong *second_data, ulong *second_len)
-{
-	if (!hdr->second_size) {
-		*second_data = *second_len = 0;
-		return -1;
+static struct boot_img_hdr_v3* _extract_boot_image_header(
+		struct blk_desc *dev_desc,
+		const disk_partition_t *boot_img) {
+	long blk_cnt, blks_read;
+	blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v3), boot_img->blksz);
+
+	struct boot_img_hdr_v3 *boot_hdr = (struct boot_img_hdr_v3*)
+		(malloc(blk_cnt * boot_img->blksz));
+
+	if(!blk_cnt || !boot_hdr) {
+		return NULL;
 	}
 
-	*second_data = (unsigned long)hdr;
-	*second_data += hdr->page_size;
-	*second_data += ALIGN(hdr->kernel_size, hdr->page_size);
-	*second_data += ALIGN(hdr->ramdisk_size, hdr->page_size);
+	blks_read  = blk_dread(dev_desc, boot_img->start, blk_cnt, boot_hdr);
+	if(blks_read != blk_cnt) {
+		debug("boot img header blk cnt is %ld and blks read is %ld\n",
+			blk_cnt, blks_read);
+		return NULL;
+	}
 
-	printf("second address is 0x%lx\n",*second_data);
+	if(strncmp(ANDR_BOOT_MAGIC, (const char *)boot_hdr->magic,
+		   ANDR_BOOT_MAGIC_SIZE)) {
+		debug("boot header magic is invalid.\n");
+		return NULL;
+	}
 
-	*second_len = hdr->second_size;
-	return 0;
+	if(boot_hdr->header_version != 3) {
+		debug("boot header is not v3.\n");
+		return NULL;
+	}
+
+	// TODO Add support for boot headers v1 and v2.
+	return boot_hdr;
+}
+
+static struct vendor_boot_img_hdr_v3* _extract_vendor_boot_image_header(
+		struct blk_desc *dev_desc,
+		const disk_partition_t *vendor_boot_img) {
+	long blk_cnt, blks_read;
+	blk_cnt = BLK_CNT(sizeof(struct vendor_boot_img_hdr_v3),
+			vendor_boot_img->blksz);
+
+	struct vendor_boot_img_hdr_v3 *vboot_hdr =
+		(struct vendor_boot_img_hdr_v3*)
+		(malloc(blk_cnt * vendor_boot_img->blksz));
+
+	if(!blk_cnt || !vboot_hdr) {
+		return NULL;
+	}
+
+	blks_read = blk_dread(dev_desc, vendor_boot_img->start, blk_cnt, vboot_hdr);
+	if(blks_read != blk_cnt) {
+		debug("vboot img header blk cnt is %ld and blks read is %ld\n",
+			blk_cnt, blks_read);
+		return NULL;
+	}
+
+	if(strncmp(VENDOR_BOOT_MAGIC, (const char *)vboot_hdr->magic,
+		   VENDOR_BOOT_MAGIC_SIZE)) {
+		debug("vendor boot header magic is invalid.\n");
+		return NULL;
+	}
+
+	if(vboot_hdr->header_version != 3) {
+		debug("vendor boot header is not v3.\n");
+		return NULL;
+	}
+
+	return vboot_hdr;
+}
+
+static void _populate_boot_info(const struct boot_img_hdr_v3* boot_hdr,
+		const struct vendor_boot_img_hdr_v3* vboot_hdr,
+		const void* load_addr,
+		andr_boot_info *boot_info) {
+	boot_info->kernel_size = boot_hdr->kernel_size;
+	boot_info->boot_ramdisk_size = boot_hdr->ramdisk_size;
+	boot_info->vendor_ramdisk_size = vboot_hdr->vendor_ramdisk_size;
+	boot_info->tags_addr = vboot_hdr->tags_addr;
+	boot_info->os_version = boot_hdr->os_version;
+	boot_info->page_size = vboot_hdr->page_size;
+	boot_info->dtb_size = vboot_hdr->dtb_size;
+	boot_info->dtb_addr = vboot_hdr->dtb_addr;
+
+	memset(boot_info->name, 0, ANDR_BOOT_NAME_SIZE);
+	strncpy(boot_info->name, (const char *)vboot_hdr->name,
+		ANDR_BOOT_NAME_SIZE);
+
+	memset(boot_info->cmdline, 0, TOTAL_BOOT_ARGS_SIZE);
+
+	strncpy(boot_info->cmdline, (const char *)boot_hdr->cmdline,
+		sizeof(boot_hdr->cmdline));
+	strncat(boot_info->cmdline, " ", 1);
+	strncat(boot_info->cmdline, (const char *)vboot_hdr->cmdline,
+		sizeof(vboot_hdr->cmdline));
+
+	boot_info->kernel_addr = (ulong)load_addr;
+	boot_info->vendor_ramdisk_addr = boot_info->kernel_addr
+		+ ALIGN(boot_info->kernel_size, vboot_hdr->page_size);
+	boot_info->boot_ramdisk_addr = boot_info->vendor_ramdisk_addr
+		+ boot_info->vendor_ramdisk_size;
+}
+
+static bool _read_in_kernel(struct blk_desc *dev_desc,
+		const disk_partition_t *boot_img,
+		const andr_boot_info *boot_info) {
+	lbaint_t kernel_lba = boot_img->start
+		+ BLK_CNT(ANDR_BOOT_IMG_HDR_SIZE, boot_img->blksz);
+	u32 kernel_size_page_aligned =
+		ALIGN(boot_info->kernel_size, ANDR_BOOT_IMG_HDR_SIZE);
+
+	long blk_cnt, blks_read;
+	blk_cnt = BLK_CNT(kernel_size_page_aligned, boot_img->blksz);
+	blks_read = blk_dread(dev_desc, kernel_lba, blk_cnt,
+			(void*)boot_info->kernel_addr);
+
+	if(blk_cnt != blks_read) {
+		debug("Reading out %lu blocks containing the kernel."
+				"Expect to read out %lu blks.\n",
+				blks_read, blk_cnt);
+		return false;
+	}
+
+	return true;
+}
+
+static bool _read_in_vendor_ramdisk(struct blk_desc *dev_desc,
+		const disk_partition_t *vendor_boot_img,
+		const andr_boot_info *boot_info) {
+	u32 vendor_hdr_size_page_aligned = 
+		ALIGN(sizeof(struct vendor_boot_img_hdr_v3),
+			boot_info->page_size);
+	u32 vendor_ramdisk_size_page_aligned = 
+		ALIGN(boot_info->vendor_ramdisk_size, boot_info->page_size);
+	lbaint_t ramdisk_lba = vendor_boot_img->start
+		+ BLK_CNT(vendor_hdr_size_page_aligned, vendor_boot_img->blksz);
+
+	long blk_cnt, blks_read;
+	blk_cnt = BLK_CNT(vendor_ramdisk_size_page_aligned,
+			vendor_boot_img->blksz);
+	blks_read = blk_dread(dev_desc, ramdisk_lba, blk_cnt,
+			(void*)boot_info->vendor_ramdisk_addr);
+
+	if(blk_cnt != blks_read) {
+		debug("Reading out %lu blocks containing the vendor ramdisk."
+				"Expect to read out %lu blks.\n",
+				blks_read, blk_cnt);
+		return false;
+	}
+
+	return true;
+}
+
+static bool _read_in_boot_ramdisk(struct blk_desc *dev_desc,
+		const disk_partition_t *boot_img,
+		const andr_boot_info *boot_info) {
+	u32 kernel_size_page_aligned =
+		ALIGN(boot_info->kernel_size, ANDR_BOOT_IMG_HDR_SIZE);
+	lbaint_t ramdisk_lba = boot_img->start
+		+ BLK_CNT(ANDR_BOOT_IMG_HDR_SIZE, boot_img->blksz)
+		+ BLK_CNT(kernel_size_page_aligned, boot_img->blksz);
+	u32 ramdisk_size_page_aligned =
+		ALIGN(boot_info->boot_ramdisk_size, ANDR_BOOT_IMG_PAGE_SIZE);
+
+	long blk_cnt, blks_read;
+	blk_cnt = BLK_CNT(ramdisk_size_page_aligned, boot_img->blksz);
+	blks_read = blk_dread(dev_desc, ramdisk_lba, blk_cnt,
+			(void*)boot_info->boot_ramdisk_addr);
+
+	if(blk_cnt != blks_read) {
+		debug("Reading out %lu blocks containing the boot ramdisk."
+				"Expect to read out %lu blks.\n",
+				blks_read, blk_cnt);
+		return false;
+	}
+
+	return true;
+}
+
+andr_boot_info* android_image_load(struct blk_desc *dev_desc,
+			const disk_partition_t *boot_img,
+			const disk_partition_t *vendor_boot_img,
+			unsigned long load_address) {
+	struct boot_img_hdr_v3 *boot_hdr = NULL;
+	struct vendor_boot_img_hdr_v3 *vboot_hdr = NULL;
+	andr_boot_info *boot_info = NULL;
+	void *kernel_rd_addr = NULL;
+
+	if(!dev_desc || !boot_img || !vendor_boot_img || !load_address) {
+		debug("Android Image load inputs are invalid.\n");
+		goto image_load_exit;
+	}
+
+	boot_hdr = _extract_boot_image_header(dev_desc, boot_img);
+	vboot_hdr = _extract_vendor_boot_image_header(dev_desc,
+						      vendor_boot_img);
+	if(!boot_hdr || !vboot_hdr) {
+		goto image_load_exit;
+	}
+
+	boot_info = (andr_boot_info*)malloc(sizeof(andr_boot_info));
+	if(!boot_info) {
+		debug("Couldn't allocate memory for boot info.\n");
+		goto image_load_exit;
+	}
+
+	// Read in kernel and ramdisk.
+	// TODO cap this memory eventually by only mapping exactly as much
+	// memory as needed
+	kernel_rd_addr = map_sysmem(load_address, 0 /* size */);
+	if(!kernel_rd_addr) {
+		debug("Can't map the input load address.\n");
+		goto image_load_exit;
+	}
+
+	_populate_boot_info(boot_hdr, vboot_hdr, kernel_rd_addr, boot_info);
+	if(!_read_in_kernel(dev_desc, boot_img, boot_info)
+		|| !_read_in_vendor_ramdisk(dev_desc, vendor_boot_img, boot_info)
+		|| !_read_in_boot_ramdisk(dev_desc, boot_img, boot_info)) {
+		goto image_load_exit;
+	}
+
+	free(boot_hdr);
+	free(vboot_hdr);
+	return boot_info;
+
+image_load_exit:
+	free(boot_hdr);
+	free(vboot_hdr);
+	free(boot_info);
+	unmap_sysmem(kernel_rd_addr);
+	return NULL;
+}
+
+int android_image_get_second(const andr_boot_info *boot_info,
+			      ulong *second_data, ulong *second_len)
+{
+	return -1;
 }
 
 /**
@@ -218,91 +327,7 @@ int android_image_get_second(const struct andr_img_hdr *hdr,
  */
 bool android_image_get_dtbo(ulong hdr_addr, ulong *addr, u32 *size)
 {
-	const struct andr_img_hdr *hdr;
-	ulong dtbo_img_addr;
-	bool ret = true;
-
-	hdr = map_sysmem(hdr_addr, sizeof(*hdr));
-	if (android_image_check_header(hdr)) {
-		printf("Error: Boot Image header is incorrect\n");
-		ret = false;
-		goto exit;
-	}
-
-	if (hdr->header_version < 1) {
-		printf("Error: header_version must be >= 1 to get dtbo\n");
-		ret = false;
-		goto exit;
-	}
-
-	if (hdr->recovery_dtbo_size == 0) {
-		printf("Error: recovery_dtbo_size is 0\n");
-		ret = false;
-		goto exit;
-	}
-
-	/* Calculate the address of DTB area in boot image */
-	dtbo_img_addr = hdr_addr;
-	dtbo_img_addr += hdr->page_size;
-	dtbo_img_addr += ALIGN(hdr->kernel_size, hdr->page_size);
-	dtbo_img_addr += ALIGN(hdr->ramdisk_size, hdr->page_size);
-	dtbo_img_addr += ALIGN(hdr->second_size, hdr->page_size);
-
-	if (addr)
-		*addr = dtbo_img_addr;
-	if (size)
-		*size = hdr->recovery_dtbo_size;
-
-exit:
-	unmap_sysmem(hdr);
-	return ret;
-}
-
-/**
- * android_image_get_dtb_img_addr() - Get the address of DTB area in boot image.
- * @hdr_addr: Boot image header address
- * @addr: Will contain the address of DTB area in boot image
- *
- * Return: true on success or false on fail.
- */
-static bool android_image_get_dtb_img_addr(ulong hdr_addr, ulong *addr)
-{
-	const struct andr_img_hdr *hdr;
-	ulong dtb_img_addr;
-	bool ret = true;
-
-	hdr = map_sysmem(hdr_addr, sizeof(*hdr));
-	if (android_image_check_header(hdr)) {
-		printf("Error: Boot Image header is incorrect\n");
-		ret = false;
-		goto exit;
-	}
-
-	if (hdr->header_version < 2) {
-		printf("Error: header_version must be >= 2 to get dtb\n");
-		ret = false;
-		goto exit;
-	}
-
-	if (hdr->dtb_size == 0) {
-		printf("Error: dtb_size is 0\n");
-		ret = false;
-		goto exit;
-	}
-
-	/* Calculate the address of DTB area in boot image */
-	dtb_img_addr = hdr_addr;
-	dtb_img_addr += hdr->page_size;
-	dtb_img_addr += ALIGN(hdr->kernel_size, hdr->page_size);
-	dtb_img_addr += ALIGN(hdr->ramdisk_size, hdr->page_size);
-	dtb_img_addr += ALIGN(hdr->second_size, hdr->page_size);
-	dtb_img_addr += ALIGN(hdr->recovery_dtbo_size, hdr->page_size);
-
-	*addr = dtb_img_addr;
-
-exit:
-	unmap_sysmem(hdr);
-	return ret;
+	return false;
 }
 
 /**
@@ -320,56 +345,6 @@ exit:
 bool android_image_get_dtb_by_index(ulong hdr_addr, u32 index, ulong *addr,
 				    u32 *size)
 {
-	const struct andr_img_hdr *hdr;
-	bool res;
-	ulong dtb_img_addr;	/* address of DTB part in boot image */
-	u32 dtb_img_size;	/* size of DTB payload in boot image */
-	ulong dtb_addr;		/* address of DTB blob with specified index  */
-	u32 i;			/* index iterator */
-
-	res = android_image_get_dtb_img_addr(hdr_addr, &dtb_img_addr);
-	if (!res)
-		return false;
-
-	/* Check if DTB area of boot image is in DTBO format */
-	if (android_dt_check_header(dtb_img_addr)) {
-		return android_dt_get_fdt_by_index(dtb_img_addr, index, addr,
-						   size);
-	}
-
-	/* Find out the address of DTB with specified index in concat blobs */
-	hdr = map_sysmem(hdr_addr, sizeof(*hdr));
-	dtb_img_size = hdr->dtb_size;
-	unmap_sysmem(hdr);
-	i = 0;
-	dtb_addr = dtb_img_addr;
-	while (dtb_addr < dtb_img_addr + dtb_img_size) {
-		const struct fdt_header *fdt;
-		u32 dtb_size;
-
-		fdt = map_sysmem(dtb_addr, sizeof(*fdt));
-		if (fdt_check_header(fdt) != 0) {
-			unmap_sysmem(fdt);
-			printf("Error: Invalid FDT header for index %u\n", i);
-			return false;
-		}
-
-		dtb_size = fdt_totalsize(fdt);
-		unmap_sysmem(fdt);
-
-		if (i == index) {
-			if (size)
-				*size = dtb_size;
-			if (addr)
-				*addr = dtb_addr;
-			return true;
-		}
-
-		dtb_addr += dtb_size;
-		++i;
-	}
-
-	printf("Error: Index is out of bounds (%u/%u)\n", index, i);
 	return false;
 }
 
@@ -385,79 +360,29 @@ bool android_image_get_dtb_by_index(ulong hdr_addr, u32 index, ulong *addr,
  * returns:
  *     no returned results
  */
-void android_print_contents(const struct andr_img_hdr *hdr)
+void android_print_contents(const andr_boot_info *boot_info)
 {
 	const char * const p = IMAGE_INDENT_STRING;
 	/* os_version = ver << 11 | lvl */
-	u32 os_ver = hdr->os_version >> 11;
-	u32 os_lvl = hdr->os_version & ((1U << 11) - 1);
+	u32 os_ver = boot_info->os_version >> 11;
+	u32 os_lvl = boot_info->os_version & ((1U << 11) - 1);
 
-	printf("%skernel size:          %x\n", p, hdr->kernel_size);
-	printf("%skernel address:       %x\n", p, hdr->kernel_addr);
-	printf("%sramdisk size:         %x\n", p, hdr->ramdisk_size);
-	printf("%sramdisk address:      %x\n", p, hdr->ramdisk_addr);
-	printf("%ssecond size:          %x\n", p, hdr->second_size);
-	printf("%ssecond address:       %x\n", p, hdr->second_addr);
-	printf("%stags address:         %x\n", p, hdr->tags_addr);
-	printf("%spage size:            %x\n", p, hdr->page_size);
+	printf("%skernel size:          %x\n", p, boot_info->kernel_size);
+	printf("%skernel address:       %x\n", p, boot_info->kernel_addr);
+	printf("%sramdisk size:         %x\n", p,
+		boot_info->vendor_ramdisk_size + boot_info->boot_ramdisk_size);
+	printf("%sramdisk address:      %x\n", p,
+		boot_info->vendor_ramdisk_addr);
+	printf("%stags address:         %x\n", p, boot_info->tags_addr);
+	printf("%spage size:            %x\n", p, boot_info->page_size);
 	/* ver = A << 14 | B << 7 | C         (7 bits for each of A, B, C)
 	 * lvl = ((Y - 2000) & 127) << 4 | M  (7 bits for Y, 4 bits for M) */
 	printf("%sos_version:           %x (ver: %u.%u.%u, level: %u.%u)\n",
-	       p, hdr->os_version,
+	       p, boot_info->os_version,
 	       (os_ver >> 7) & 0x7F, (os_ver >> 14) & 0x7F, os_ver & 0x7F,
 	       (os_lvl >> 4) + 2000, os_lvl & 0x0F);
-	printf("%sname:                 %s\n", p, hdr->name);
-	printf("%scmdline:              %s\n", p, hdr->cmdline);
-	printf("%sheader_version:       %d\n", p, hdr->header_version);
-
-	if (hdr->header_version >= 1) {
-		printf("%srecovery dtbo size:   %x\n", p,
-		       hdr->recovery_dtbo_size);
-		printf("%srecovery dtbo offset: %llx\n", p,
-		       hdr->recovery_dtbo_offset);
-		printf("%sheader size:          %x\n", p,
-		       hdr->header_size);
-	}
-
-	if (hdr->header_version >= 2) {
-		printf("%sdtb size:             %x\n", p, hdr->dtb_size);
-		printf("%sdtb addr:             %llx\n", p, hdr->dtb_addr);
-	}
-}
-
-/**
- * android_image_print_dtb_info - Print info for one DTB blob in DTB area.
- * @fdt: DTB header
- * @index: Number of DTB blob in DTB area.
- *
- * Return: true on success or false on error.
- */
-static bool android_image_print_dtb_info(const struct fdt_header *fdt,
-					 u32 index)
-{
-	int root_node_off;
-	u32 fdt_size;
-	const char *model;
-	const char *compatible;
-
-	root_node_off = fdt_path_offset(fdt, "/");
-	if (root_node_off < 0) {
-		printf("Error: Root node not found\n");
-		return false;
-	}
-
-	fdt_size = fdt_totalsize(fdt);
-	compatible = fdt_getprop(fdt, root_node_off, "compatible",
-				 NULL);
-	model = fdt_getprop(fdt, root_node_off, "model", NULL);
-
-	printf(" - DTB #%u:\n", index);
-	printf("           (DTB)size = %d\n", fdt_size);
-	printf("          (DTB)model = %s\n", model ? model : "(unknown)");
-	printf("     (DTB)compatible = %s\n",
-	       compatible ? compatible : "(unknown)");
-
-	return true;
+	printf("%sname:                 %s\n", p, boot_info->name);
+	printf("%scmdline:              %s\n", p, boot_info->cmdline);
 }
 
 /**
@@ -477,55 +402,6 @@ static bool android_image_print_dtb_info(const struct fdt_header *fdt,
  */
 bool android_image_print_dtb_contents(ulong hdr_addr)
 {
-	const struct andr_img_hdr *hdr;
-	bool res;
-	ulong dtb_img_addr;	/* address of DTB part in boot image */
-	u32 dtb_img_size;	/* size of DTB payload in boot image */
-	ulong dtb_addr;		/* address of DTB blob with specified index  */
-	u32 i;			/* index iterator */
-
-	res = android_image_get_dtb_img_addr(hdr_addr, &dtb_img_addr);
-	if (!res)
-		return false;
-
-	/* Check if DTB area of boot image is in DTBO format */
-	if (android_dt_check_header(dtb_img_addr)) {
-		printf("## DTB area contents (DTBO format):\n");
-		android_dt_print_contents(dtb_img_addr);
-		return true;
-	}
-
-	printf("## DTB area contents (concat format):\n");
-
-	/* Iterate over concatenated DTB blobs */
-	hdr = map_sysmem(hdr_addr, sizeof(*hdr));
-	dtb_img_size = hdr->dtb_size;
-	unmap_sysmem(hdr);
-	i = 0;
-	dtb_addr = dtb_img_addr;
-	while (dtb_addr < dtb_img_addr + dtb_img_size) {
-		const struct fdt_header *fdt;
-		u32 dtb_size;
-
-		fdt = map_sysmem(dtb_addr, sizeof(*fdt));
-		if (fdt_check_header(fdt) != 0) {
-			unmap_sysmem(fdt);
-			printf("Error: Invalid FDT header for index %u\n", i);
-			return false;
-		}
-
-		res = android_image_print_dtb_info(fdt, i);
-		if (!res) {
-			unmap_sysmem(fdt);
-			return false;
-		}
-
-		dtb_size = fdt_totalsize(fdt);
-		unmap_sysmem(fdt);
-		dtb_addr += dtb_size;
-		++i;
-	}
-
 	return true;
 }
 #endif

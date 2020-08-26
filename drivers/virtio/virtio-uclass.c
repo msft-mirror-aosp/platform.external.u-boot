@@ -291,6 +291,7 @@ static int virtio_uclass_child_pre_probe(struct udevice *vdev)
 	if (ret)
 		goto err;
 
+	virtio_add_status(vdev, VIRTIO_CONFIG_S_ACKNOWLEDGE);
 	/* We have a driver! */
 	virtio_add_status(vdev, VIRTIO_CONFIG_S_DRIVER);
 

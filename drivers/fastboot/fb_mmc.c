@@ -211,7 +211,7 @@ static void fb_mmc_boot1_ops(struct blk_desc *dev_desc, void *buffer,
  */
 static lbaint_t fb_mmc_get_boot_header(struct blk_desc *dev_desc,
 				       disk_partition_t *info,
-				       struct andr_img_hdr *hdr,
+				       andr_boot_info *hdr,
 				       char *response)
 {
 	ulong sector_size;		/* boot partition sector size */
@@ -220,7 +220,7 @@ static lbaint_t fb_mmc_get_boot_header(struct blk_desc *dev_desc,
 
 	/* Calculate boot image sectors count */
 	sector_size = info->blksz;
-	hdr_sectors = DIV_ROUND_UP(sizeof(struct andr_img_hdr), sector_size);
+	hdr_sectors = DIV_ROUND_UP(sizeof(andr_boot_info), sector_size);
 	if (hdr_sectors == 0) {
 		pr_err("invalid number of boot sectors: 0\n");
 		fastboot_fail("invalid number of boot sectors: 0", response);
@@ -262,7 +262,7 @@ static int fb_mmc_update_zimage(struct blk_desc *dev_desc,
 				char *response)
 {
 	uintptr_t hdr_addr;			/* boot image header address */
-	struct andr_img_hdr *hdr;		/* boot image header */
+	andr_boot_info *hdr;		/* boot image header */
 	lbaint_t hdr_sectors;			/* boot image header sectors */
 	u8 *ramdisk_buffer;
 	u32 ramdisk_sector_start;
@@ -285,7 +285,7 @@ static int fb_mmc_update_zimage(struct blk_desc *dev_desc,
 
 	/* Put boot image header in fastboot buffer after downloaded zImage */
 	hdr_addr = (uintptr_t)download_buffer + ALIGN(download_bytes, PAGE_SIZE);
-	hdr = (struct andr_img_hdr *)hdr_addr;
+	hdr = (andr_boot_info *)hdr_addr;
 
 	/* Read boot image header */
 	hdr_sectors = fb_mmc_get_boot_header(dev_desc, &info, hdr, response);

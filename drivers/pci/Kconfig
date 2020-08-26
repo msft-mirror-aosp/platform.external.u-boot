@@ -36,6 +36,16 @@ config PCI_AARDVARK
 	  Armada37x0 SoCs. The PCIe controller on Armada37x0 is based on
 	  Aardvark hardware.
 
+config PCI_ENUM_ONLY
+	bool "Enumerate PCI devices only (perform no setup)"
+	depends on PCI || DM_PCI
+	help
+	  Only scan through and get the devices on the buses.
+	  Don't do any setup work, presumably because someone or
+	  something has already done it, and we don't need to do it
+	  a second time. Useful for platforms that are pre-booted
+	  by coreboot or similar.
+
 config PCI_PNP
 	bool "Enable Plug & Play support for PCI"
 	depends on PCI || DM_PCI
