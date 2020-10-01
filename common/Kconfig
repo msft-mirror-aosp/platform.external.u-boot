@@ -881,6 +881,19 @@ config BOARD_TYPES
 	  displayed immediately after the model is shown on the console
 	  early in boot.
 
+config ANDROID_BOOTLOADER
+	bool "Support for Android Bootloader boot flow"
+	default n
+	depends on ANDROID_BOOT_IMAGE
+	help
+	  If enabled, adds support to boot an Android device following the
+	  Android Bootloader boot flow. This flow requires an Android Bootloader
+	  to handle the Android Bootloader Message stored in the Boot Control
+	  Block (BCB), normally in the "misc" partition of an Android device.
+	  The BCB is used to determine the boot mode of the device (normal mode,
+	  recovery mode or bootloader mode) and, if enabled, the slot to boot
+	  from in devices with multiple boot slots (A/B devices).
+
 menu "Start-up hooks"
 
 config ARCH_EARLY_INIT_R

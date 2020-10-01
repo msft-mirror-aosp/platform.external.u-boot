@@ -1,0 +1,15 @@
+. ${ROOT_DIR}/u-boot/build.config.common
+
+ARCH=x86_64
+LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9/bin
+CC="${CC} --target=x86_64-linux-gnu --prefix=${PWD}/${LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN} --gcc-toolchain=${PWD}/${LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN}/.."
+CROSS_COMPILE=x86_64-linux-androidkernel-
+DEFCONFIG=cf-x86_defconfig
+
+MAKE_GOALS="
+SWIG_LIB=${PWD}/external/swig/Lib
+"
+
+FILES="tools/mkimage
+tools/mkenvimage
+"

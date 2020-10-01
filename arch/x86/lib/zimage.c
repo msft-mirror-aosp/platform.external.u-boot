@@ -28,6 +28,9 @@
 #endif
 #include <linux/compiler.h>
 #include <linux/libfdt.h>
+#include <image.h>
+#include <log.h>
+#include <mapmem.h>
 
 /*
  * Memory lay-out:
@@ -217,14 +220,7 @@ struct boot_params *load_zimage(char *image, unsigned long kernel_size,
 		       SETUP_MAX_SIZE - setup_size);
 	}
 
-	if (big_image) {
-		if (kernel_size > BZIMAGE_MAX_SIZE) {
-			printf("Error: bzImage kernel too big! "
-				"(size: %ld, max: %d)\n",
-				kernel_size, BZIMAGE_MAX_SIZE);
-			return 0;
-		}
-	} else if ((kernel_size) > ZIMAGE_MAX_SIZE) {
+	if (big_image == false && (kernel_size) > ZIMAGE_MAX_SIZE) {
 		printf("Error: zImage kernel too big! (size: %ld, max: %d)\n",
 		       kernel_size, ZIMAGE_MAX_SIZE);
 		return 0;
@@ -361,6 +357,60 @@ int do_zboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	/* we assume that the kernel is in place */
 	return boot_linux_kernel((ulong)base_ptr, load_address, false);
 }
+
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+static char hex_to_char(uint8_t nibble) {
+	if (nibble < 10) {
+		return '0' + nibble;
+	} else {
+		return 'a' + nibble - 10;
+	}
+}
+// Helper function to convert 32bit int to a hex string
+static void hex_to_str(char* str, ulong input) {
+	str[0] = '0'; str[1] = 'x';
+	size_t str_idx = 2;
+	uint32_t byte_extracted;
+	uint8_t nibble;
+        // Assume that this is on a little endian system.
+	for(int byte_idx = 3; byte_idx >= 0; byte_idx--) {
+		byte_extracted = ((0xFF << (byte_idx*8)) & input) >> (byte_idx*8);
+		nibble = byte_extracted & 0xF0;
+		nibble = nibble >> 4;
+		nibble = nibble & 0xF;
+		str[str_idx] = hex_to_char(nibble);
+		str_idx++;
+		nibble = byte_extracted & 0xF;
+		str[str_idx] = hex_to_char(nibble);
+		str_idx++;
+	}
+	str[str_idx] = 0;
+}
+int android_bootloader_boot_kernel(const struct andr_boot_info_t *boot_info)
+{
+	ulong kernel_address;
+	ulong ramdisk_address, ramdisk_len;
+	char kernel_addr_str[12], ramdisk_addr_str[12], ramdisk_len_str[12];
+	char *zboot_args[] = {
+		"zboot", kernel_addr_str, "0", ramdisk_addr_str, ramdisk_len_str, NULL };
+
+	if (android_image_get_kernel(boot_info, images.verify, NULL, NULL))
+		return -1;
+	if (android_image_get_ramdisk(boot_info, &ramdisk_address, &ramdisk_len))
+		return -1;
+
+	kernel_address = android_image_get_kload(boot_info);
+	hex_to_str(kernel_addr_str, kernel_address);
+	hex_to_str(ramdisk_addr_str, ramdisk_address);
+	hex_to_str(ramdisk_len_str , ramdisk_len);
+
+	printf("Booting kernel at %s with fdt at %s ramdisk %s (%s bytes)...\n\n\n",
+		kernel_addr_str, env_get("fdtaddr"), ramdisk_addr_str, ramdisk_len_str);
+	do_zboot(NULL, 0, 5, zboot_args);
+
+	return -1;
+}
+#endif
 
 U_BOOT_CMD(
 	zboot, 5, 0,	do_zboot,

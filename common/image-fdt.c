@@ -462,7 +462,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 		}
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	} else if (genimg_get_format(buf) == IMAGE_FORMAT_ANDROID) {
-		struct andr_img_hdr *hdr = buf;
+		struct andr_boot_info_t *hdr = buf;
 		ulong fdt_data, fdt_len;
 
 		if (!android_image_get_second(hdr, &fdt_data, &fdt_len) &&

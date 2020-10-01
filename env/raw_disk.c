@@ -10,7 +10,7 @@
 
 #include <command.h>
 #include <dm/device.h>
-#include <environment.h>
+#include <env_internal.h>
 #include <linux/stddef.h>
 #include <malloc.h>
 #include <memalign.h>
@@ -74,14 +74,14 @@ static int env_raw_disk_load(void)
 					CONFIG_ENV_RAW_DISK_DEVICE_AND_PART,
 					&dev_desc, &info, 1);
 	if (part < 0) {
-		set_default_env(NULL, 0);
+		env_set_default(NULL, 0);
 		return -EINVAL;
 	}
 
 	blk_cnt = ALIGN(CONFIG_ENV_SIZE, info.blksz) / info.blksz;
 	n = blk_dread(dev_desc, info.start, blk_cnt, buf);
 	if (n != blk_cnt) {
-		set_default_env(NULL, 0);
+		env_set_default(NULL, 0);
 		return -EIO;
 	}
 
