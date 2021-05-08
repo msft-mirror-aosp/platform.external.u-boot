@@ -1,3 +1,6 @@
+# *** THIS PACKAGE HAS SPECIAL LICENSING CONDITIONS.  PLEASE
+#     CONSULT THE OWNERS AND opensource-licensing@google.com BEFORE
+#     DEPENDING ON IT IN YOUR PROJECT. ***
 name: "u-boot"
 description:
     ""
@@ -13,5 +16,11 @@ third_party {
   }
   version: "2020.01"
   last_upgrade_date { year: 2020 month: 1 day: 23 }
-  license_type: RESTRICTED
+  # would be RESTRICTED save for proprietary eCos Broadcom Intel in:
+  #   common/xyzModem.c (eCos-2.0)
+  #   include/xyzModem.h (eCos-2.0)
+  #   lib/crc16.c (eCos-2.0)
+  #   arch/arm/include/asm/iproc-common/iproc_sdhci.h (Broadcom)
+  #   arch/x86/{cpu/quark,include/asm,lib}/** (Intel)
+  license_type: BY_EXCEPTION_ONLY
 }
