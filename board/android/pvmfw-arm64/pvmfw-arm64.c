@@ -8,6 +8,7 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <dm/root.h>
 #include <env.h>
 #include <fdtdec.h>
 #include <init.h>
@@ -75,6 +76,21 @@ static void *locate_bcc(size_t *size)
 		*size = PAGE_SIZE;
 
 	return (void *)ALIGN((uintptr_t)_end - gd->reloc_off, PAGE_SIZE);
+}
+
+void board_cleanup_before_linux(void)
+{
+	/*
+	 * The DM needs instantiated device drivers to be removed before the
+	 * payload is executed for features such as DM_FLAG_ACTIVE_DMA and
+	 * DM_FLAG_OS_PREPARE to work as expected.
+	 *
+	 * This is typically handled by the 'bootm' command (and friends) but
+	 * those are made unavailable by pvmfw as it provides a fixed boot path
+	 * and removes support for CLI. Therefore, it is necessary to manually
+	 * handle it in cleanup_before_linux().
+	 */
+	dm_remove_devices_flags(DM_REMOVE_ACTIVE_ALL);
 }
 
 int board_run_command(const char *cmdline)
