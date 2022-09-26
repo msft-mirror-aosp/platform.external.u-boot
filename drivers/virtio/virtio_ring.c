@@ -18,6 +18,7 @@
 #include <linux/compat.h>
 #include <linux/kernel.h>
 
+__section(".data")
 struct virtio_iommu_platform_ops *virtio_iommu_platform_ops = NULL;
 
 static void virtio_iommu_map_pages(struct udevice *vdev, void *buf, u32 npages)
