@@ -49,7 +49,7 @@ enum arm_smccc_conduit arm_smccc_1_1_get_conduit(void)
 	return smccc_conduit;
 }
 
-static u32 psci_version;
+static __smccc_conduit_section u32 psci_version;
 
 unsigned long __efi_runtime invoke_psci_fn
 		(unsigned long function_id, unsigned long arg0,
