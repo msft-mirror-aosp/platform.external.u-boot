@@ -39,6 +39,7 @@
 	"rollback_flag=0\0"\
 	"boot_flag=0\0"\
 	"Irq_check_en=0\0"\
+	"recovery_mode=false\0"\
 	"retry_recovery_times=3\0"\
 	"androidboot.dtbo_idx=0\0"\
 	"common_dtb_load=" CONFIG_DTB_LOAD "\0"\
@@ -133,6 +134,7 @@
 	"recovery_from_flash_base="\
 		"echo active_slot: ${active_slot};"\
 		"setenv loadaddr ${loadaddr_kernel};"\
+		"setenv recovery_mode true;"\
 		"if test ${active_slot} = normal; then "\
 			"setenv bootargs ${bootargs} ${fs_type} aml_dt=${aml_dt} "\
 			"recovery_part=${recovery_part} recovery_offset=${recovery_offset};"\
