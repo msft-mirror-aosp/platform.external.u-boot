@@ -1301,6 +1301,7 @@ endif
 
 u-boot-nodtb.bin: u-boot FORCE
 	$(call if_changed,objcopy_uboot)
+	@$(if $(CONFIG_X86),truncate -s $$(((($$(stat -c %s $@)+8-1)/8)*8)) $@)
 	$(BOARD_SIZE_CHECK)
 
 u-boot.ldr:	u-boot
