@@ -229,6 +229,7 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops, const uint8_t *public
 		*out_is_trusted = true;
 		ret = AVB_IO_RESULT_OK;
 	}
+#ifdef CONFIG_TESTKEY
 
 	unsigned int isSecure = IS_FEAT_BOOT_VERIFY();
 
@@ -249,6 +250,7 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops, const uint8_t *public
 			ret = AVB_IO_RESULT_OK;
 		}
 	}
+#endif
 #elif defined(CONFIG_AVB2_KPUB_DEFAULT)
 	printf("AVB2 verify with default kpub\n");
 	if (avb2_kpub_default_len == public_key_length &&
